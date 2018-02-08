@@ -1,29 +1,21 @@
+# -*- coding: utf-8 -*-
 import urllib2, urllib, re, os
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
 import weblogin
 
 __settings__ = xbmcaddon.Addon()
-## Not needed for this addon. 
-#__icon__ = __settings__.getAddonInfo('icon')
-#__fanart__ = __settings__.getAddonInfo('fanart')
-#__language__ = __settings__.getLocalizedString
 _thisPlugin = int(sys.argv[1])
 _pluginName = (sys.argv[0])
 username = __settings__.getSetting('username')
 password = __settings__.getSetting('password')
 
-###
-### Uncomment if you would like channel icons to be re-downloaded each time you start the addon 
-###
-#from sqlite3 import dbapi2 as sqlite
-#DB = os.path.join(xbmc.translatePath("special://userdata/Database"), 'Textures13.db')
-#db = sqlite.connect(DB)
-#db.execute('Delete FROM texture WHERE url LIKE "%bgtv-on%"')
-#db.commit()
-#db.close()
+BASE="http://www.bgtv-on.com/"
+subscribe_url="http://bgtv-on.com/subscribe"
+recording_url="http://bgtv-on.com/recording"
 
-BASE = "http://www.bgtv-on.com/"
-subscribe_url = "http://bgtv-on.com/subscribe"
+def MAIN_MENU():
+    addDir('НА ЖИВО','none',10,'')
+    addDir('НА ЗАПИС','none',50,'')	
 
 def LIST_CHANNELS():
     # Check if account is active
@@ -38,18 +30,18 @@ def LIST_CHANNELS():
     if(account_active == '1'):
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     elif(account_active == '0'):
-        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_WARNING, 8000, sound=False) 
+        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_WARNING, 8000, sound=False)
         xbmc.log("You don't have a valide account, so you are going to watch only free TVs.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     match=re.compile(match_pattern).findall(source)
     for cid,ch_image,ch_current in match:
         ch_image = (BASE + ch_image)
-        addDir(ch_current,cid,1,ch_image)
+        addDir(ch_current,cid,20,ch_image)
 
 def INDEX_CHANNELS(cid):
-    url = (str(BASE) + "teko/getchaclap_mbr.php?cid=" + str(cid))
+    url=(BASE+"teko/getchaclap_mbr.php?cid="+cid)
     source_ch=weblogin.doLogin('',username,password,url)
-    n = source_ch.count('m3u8')
+    n=source_ch.count('m3u8')
     item_plus=',"(.+?)"'
     search_string='\["(.+?)"'
     end_string='\]'
@@ -72,6 +64,42 @@ def INDEX_CHANNELS(cid):
         for what_to_play in match_what_to_play:
             addLink('PLAY: '+what_to_play,match,'')
 
+def LIST_REC():
+    req=urllib2.Request(recording_url)
+    req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
+    response=urllib2.urlopen(req)
+    source=response.read()
+    response.close()
+    match_rec=re.compile('<a href=recording(.+?).class=tab.>(.+?)<\/a>').findall(source)
+    for cid,name in match_rec:
+        rec_url=(recording_url+cid)
+        addDir(name,rec_url,51,'')
+
+def LIST_REC_CHAN(cid):
+    req=urllib2.Request(cid)
+    req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
+    response=urllib2.urlopen(req)
+    source=response.read()
+    response.close()
+    match_rec=re.compile('(<div class=\"day\">(.+?)<\/div>)*(<a href=(.+?)><li><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span><div class="clear"><\/div><\/li><\/a>)').findall(source)
+    for temp1,day,temp2,rec_url,time,name in match_rec:
+        del temp1, temp2
+        if(day):
+            day_previous=day
+        else:
+            day=day_previous
+        name=('['+day+'] '+'('+time+') '+name)
+        addDir(name,rec_url,52,'')
+        
+def PLAY_REC_CHAN(cid,name):
+    url=(BASE+cid)
+    source_rec=weblogin.doLogin('',username,password,url)
+    match_rec=re.compile('source:."(.+?)"').findall(source_rec)
+    if not match_rec:
+        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_ERROR, 8000, sound=True)
+    for rec_url in match_rec:
+        addLink('PLAY: '+name,rec_url,'')
+	
 def get_params():
     param=[]
     paramstring=sys.argv[2]
@@ -128,9 +156,21 @@ xbmc.log("CID: "+str(cid))
 xbmc.log("Name: "+str(name))
 
 if mode==None or cid==None or len(cid)<1:
+    MAIN_MENU()
+
+elif mode==10:
     LIST_CHANNELS()
 
-elif mode==1:
+elif mode==20:
     INDEX_CHANNELS(cid)
+
+elif mode==50:
+    LIST_REC()
+
+elif mode==51:
+    LIST_REC_CHAN(cid)
+
+elif mode==52:
+    PLAY_REC_CHAN(cid,name)
 
 xbmcplugin.endOfDirectory(_thisPlugin)
