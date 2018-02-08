@@ -83,7 +83,7 @@ def LIST_REC_CHAN(cid):
     response.close()
     match_rec=re.compile('(<div class=\"day\">(.+?)<\/div>)*(<a href=(.+?)><li><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span><div class="clear"><\/div><\/li><\/a>)').findall(source)
     for temp1,day,temp2,rec_url,time,name in match_rec:
-        del temp1, temp2
+        del temp1,temp2
         if(day):
             day_previous=day
         else:
