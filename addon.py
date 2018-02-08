@@ -153,8 +153,8 @@ xbmc.log("CID: "+str(cid))
 xbmc.log("Name: "+str(name))
 
 if mode==None or cid==None or len(cid)<1:
-    dialog = xbmcgui.Dialog()
-    ret = dialog.select('',['НА ЖИВО','НА ЗАПИС'])
+    dialog=xbmcgui.Dialog()
+    ret=dialog.select('',['НА ЖИВО','НА ЗАПИС'])
     if(ret==0):
         xbmc.log('Starting live tv')
         LIST_CHANNELS()
