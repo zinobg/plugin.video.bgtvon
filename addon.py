@@ -13,9 +13,6 @@ BASE="http://www.bgtv-on.com/"
 subscribe_url="http://bgtv-on.com/subscribe"
 recording_url="http://bgtv-on.com/recording"
 
-def MAIN_MENU():
-    addDir('НА ЖИВО','none',10,'')
-    addDir('НА ЗАПИС','none',50,'')	
 
 def LIST_CHANNELS():
     # Check if account is active
@@ -156,10 +153,14 @@ xbmc.log("CID: "+str(cid))
 xbmc.log("Name: "+str(name))
 
 if mode==None or cid==None or len(cid)<1:
-    MAIN_MENU()
-
-elif mode==10:
-    LIST_CHANNELS()
+    dialog = xbmcgui.Dialog()
+    ret = dialog.select('',['НА ЖИВО','НА ЗАПИС'])
+    if(ret==0):
+        xbmc.log('Starting live tv')
+        LIST_CHANNELS()
+    elif(ret==1):
+        xbmc.log('Starting recordings')
+        LIST_REC()
 
 elif mode==20:
     INDEX_CHANNELS(cid)
