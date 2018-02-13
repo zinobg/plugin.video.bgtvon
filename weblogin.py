@@ -24,7 +24,7 @@ def doLogin(cookiepath, username, password, url_to_open):
     if username and password:
         login_url = 'http://bgtv-on.com/login.php'
         header_string = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3'
-        login_data = urllib.urlencode({'user':username, 'pass':password, 'rememberme_disp':1, 'login':'submitbutton'})
+        login_data = urllib.urlencode({'user':username,'pass':password,'rememberme':'on','login':'submitbutton'})
         req = urllib2.Request(login_url, login_data)
         req.add_header('User-Agent',header_string)
         cj = cookielib.LWPCookieJar()
