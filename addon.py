@@ -60,9 +60,6 @@ def INDEX_CHANNELS(cid):
         list_to_play=[]
         for what_to_play in match_what_to_play:
             addLink('PLAY: '+what_to_play,match,'')
-            #list_to_play.append=('PLAY: '+what_to_play)
-        #dialog=xbmcgui.Dialog()
-        #ret=dialog.select('',list_to_play)
 
 def LIST_REC():
     req=urllib2.Request(recording_url)
@@ -98,7 +95,6 @@ def PLAY_REC_CHAN(cid,name):
     if not match_rec:
         xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_ERROR, 8000, sound=True)
     for rec_url in match_rec:
-        #playLink(name,rec_url)
         addLink('PLAY: '+name,rec_url,'')
 	
 def get_params():
@@ -125,14 +121,6 @@ def addLink(name,url,iconimage):
     liz.setProperty('IsPlayable','true')
     ok=xbmcplugin.addDirectoryItem(handle=_thisPlugin,url=url,listitem=liz)
     return ok
-
-#def playLink(name,url):
-#    ok=True
-#    liz=xbmcgui.ListItem(name,iconImage="DefaultVideo.png",thumbnailImage='')
-#    liz.setInfo(type="Video", infoLabels={ "Title": name })
-#    liz.setProperty('IsPlayable','true')
-#    ok=xbmc.Player().play(url,liz)
-#    return ok
 
 def addDir(name,cid,mode,iconimage):
     u=_pluginName+"?cid="+urllib.quote_plus(cid)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)
