@@ -8,11 +8,10 @@ _thisPlugin = int(sys.argv[1])
 _pluginName = (sys.argv[0])
 username = __settings__.getSetting('username')
 password = __settings__.getSetting('password')
-
+header_string = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
 BASE="http://www.bgtv-on.com/"
-subscribe_url="http://bgtv-on.com/subscribe"
-recording_url="http://bgtv-on.com/recording"
-
+subscribe_url=BASE+'subscribe'
+recording_url=BASE+'recording'
 
 def LIST_CHANNELS():
     # Check if account is active
@@ -28,7 +27,7 @@ def LIST_CHANNELS():
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     elif(account_active == '0'):
         xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_WARNING, 8000, sound=False)
-        xbmc.log("You don't have a valide account, so you are going to watch only free TVs.")
+        xbmc.log("You don't have a valid account, so you are going to watch only free TVs.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     match=re.compile(match_pattern).findall(source)
     for cid,ch_image,ch_current in match:
@@ -58,12 +57,16 @@ def INDEX_CHANNELS(cid):
     elif(source_ch.count('m3u8') == 1):
         match=match[0]
         match_what_to_play=re.compile('liveedge\/(.+?).stream').findall(match)
+        list_to_play=[]
         for what_to_play in match_what_to_play:
             addLink('PLAY: '+what_to_play,match,'')
+            #list_to_play.append=('PLAY: '+what_to_play)
+        #dialog=xbmcgui.Dialog()
+        #ret=dialog.select('',list_to_play)
 
 def LIST_REC():
     req=urllib2.Request(recording_url)
-    req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
+    req.add_header('User-Agent',header_strin)
     response=urllib2.urlopen(req)
     source=response.read()
     response.close()
@@ -74,7 +77,7 @@ def LIST_REC():
 
 def LIST_REC_CHAN(cid):
     req=urllib2.Request(cid)
-    req.add_header('User-Agent', 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3')
+    req.add_header('User-Agent',header_strin)
     response=urllib2.urlopen(req)
     source=response.read()
     response.close()
@@ -95,38 +98,47 @@ def PLAY_REC_CHAN(cid,name):
     if not match_rec:
         xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_ERROR, 8000, sound=True)
     for rec_url in match_rec:
+        #playLink(name,rec_url)
         addLink('PLAY: '+name,rec_url,'')
 	
 def get_params():
     param=[]
     paramstring=sys.argv[2]
     if len(paramstring)>=2:
-            params=sys.argv[2]
-            cleanedparams=params.replace('?','')
-            if (params[len(params)-1]=='/'):
-                    params=params[0:len(params)-2]
-            pairsofparams=cleanedparams.split('&')
-            param={}
-            for i in range(len(pairsofparams)):
-                    splitparams={}
-                    splitparams=pairsofparams[i].split('=')
-                    if (len(splitparams))==2:
-                            param[splitparams[0]]=splitparams[1]
+        params=sys.argv[2]
+        cleanedparams=params.replace('?','')
+        if (params[len(params)-1]=='/'):
+            params=params[0:len(params)-2]
+        pairsofparams=cleanedparams.split('&')
+        param={}
+        for i in range(len(pairsofparams)):
+            splitparams={}
+            splitparams=pairsofparams[i].split('=')
+            if (len(splitparams))==2:
+                param[splitparams[0]]=splitparams[1]
     return param
 
 def addLink(name,url,iconimage):
     ok=True
-    liz=xbmcgui.ListItem(name, iconImage="DefaultVideo.png", thumbnailImage=iconimage)
-    liz.setInfo( type="Video", infoLabels={ "Title": name } )
+    liz=xbmcgui.ListItem(name,iconImage="DefaultVideo.png",thumbnailImage=iconimage)
+    liz.setInfo(type="Video",infoLabels={ "Title": name })
     liz.setProperty('IsPlayable','true')
     ok=xbmcplugin.addDirectoryItem(handle=_thisPlugin,url=url,listitem=liz)
     return ok
 
+#def playLink(name,url):
+#    ok=True
+#    liz=xbmcgui.ListItem(name,iconImage="DefaultVideo.png",thumbnailImage='')
+#    liz.setInfo(type="Video", infoLabels={ "Title": name })
+#    liz.setProperty('IsPlayable','true')
+#    ok=xbmc.Player().play(url,liz)
+#    return ok
+
 def addDir(name,cid,mode,iconimage):
     u=_pluginName+"?cid="+urllib.quote_plus(cid)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)
     ok=True
-    liz=xbmcgui.ListItem(name, iconImage="DefaultFolder.png", thumbnailImage=iconimage)
-    liz.setInfo( type="Video", infoLabels={ "Title": name } )
+    liz=xbmcgui.ListItem(name,iconImage="DefaultFolder.png",thumbnailImage=iconimage)
+    liz.setInfo(type="Video", infoLabels={ "Title": name })
     ok=xbmcplugin.addDirectoryItem(handle=_thisPlugin,url=u,listitem=liz,isFolder=True)
     return ok
 
