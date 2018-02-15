@@ -66,7 +66,7 @@ def INDEX_CHANNELS(cid):
 
 def LIST_REC():
     req=urllib2.Request(recording_url)
-    req.add_header('User-Agent',header_strin)
+    req.add_header('User-Agent',header_string)
     response=urllib2.urlopen(req)
     source=response.read()
     response.close()
@@ -77,7 +77,7 @@ def LIST_REC():
 
 def LIST_REC_CHAN(cid):
     req=urllib2.Request(cid)
-    req.add_header('User-Agent',header_strin)
+    req.add_header('User-Agent',header_string)
     response=urllib2.urlopen(req)
     source=response.read()
     response.close()
