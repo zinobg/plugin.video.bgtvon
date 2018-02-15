@@ -26,7 +26,7 @@ def LIST_CHANNELS():
     if(account_active == '1'):
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     elif(account_active == '0'):
-        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_WARNING, 8000, sound=False)
+        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=False)
         xbmc.log("You don't have a valid account, so you are going to watch only free TVs.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     match=re.compile(match_pattern).findall(source)
