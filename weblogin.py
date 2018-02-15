@@ -3,9 +3,9 @@ import xbmc, xbmcgui
 import cookielib
 
 def check_login(source_login,username):
-    logged_in_string = 'logout'
+    logged_in_string1 = 'logout'
     logged_in_string2 = 'm3u8'
-    if re.search(logged_in_string,source_login,re.IGNORECASE) or re.search(logged_in_string2,source_login,re.IGNORECASE):
+    if re.search(logged_in_string1,source_login,re.IGNORECASE) or re.search(logged_in_string2,source_login,re.IGNORECASE):
         return True
     else:
         return False
@@ -23,7 +23,7 @@ def doLogin(cookiepath, username, password, url_to_open):
 
     if username and password:
         login_url = 'http://bgtv-on.com/login.php'
-        header_string = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-GB; rv:1.9.0.3) Gecko/2008092417 Firefox/3.0.3'
+        header_string = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
         login_data = urllib.urlencode({'user':username,'pass':password,'rememberme':'on'})
         req = urllib2.Request(login_url, login_data)
         req.add_header('User-Agent',header_string)
