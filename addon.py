@@ -46,7 +46,7 @@ def INDEX_CHANNELS(cid):
         n -=1
     search_string=search_string+end_string
     match=re.compile(search_string).findall(source_ch)
-    xbmc.log(str(match))
+    xbmc.log('match='+str(match))
     if(source_ch.count('m3u8') > 1):
         match=match[0]
         i = 0
@@ -57,7 +57,8 @@ def INDEX_CHANNELS(cid):
     elif(source_ch.count('m3u8') == 1):
         match=match[0]
         match_what_to_play=re.compile('liveedge\/(.+?).stream').findall(match)
-        list_to_play=[]
+        if not match_what_to_play:
+            addLink('PLAY: '+match,match,'')
         for what_to_play in match_what_to_play:
             addLink('PLAY: '+what_to_play,match,'')
 
