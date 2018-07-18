@@ -1,4 +1,21 @@
 # -*- coding: utf-8 -*-
+#
+#     Copyright (C) 2018 zinobg@gmail.com
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+
 import urllib2, urllib, re, os
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
 import weblogin
@@ -16,13 +33,14 @@ recording_url=BASE+'recording'
 def LIST_CHANNELS():
     # Check if account is active
     account_active='0'
-    subscribe_source=weblogin.doLogin('',username,password,subscribe_url)
+    subscribe_source=weblogin.doLogin('',username,password)
+    subscribe_source=weblogin.openUrl(subscribe_url)
     match=re.compile('<p><span.*>(.+?)<\/span><\/p>').findall(subscribe_source)
     for subs_text in match:
         account_active='1'
         xbmc.log("Account is active: "+subs_text)
     # End of check
-    source=weblogin.doLogin('',username,password,BASE)
+    source=weblogin.openUrl(BASE)
     if(account_active == '1'):
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     elif(account_active == '0'):
@@ -36,7 +54,8 @@ def LIST_CHANNELS():
 
 def INDEX_CHANNELS(cid):
     url=(BASE+"teko/getchaclap_mbr.php?cid="+cid)
-    source_ch=weblogin.doLogin('',username,password,url)
+    source_ch=weblogin.doLogin('',username,password)
+    source_ch=weblogin.openUrl(url)
     n=source_ch.count('m3u8')
     item_plus=',"(.+?)"'
     search_string='\["(.+?)"'
@@ -91,7 +110,8 @@ def LIST_REC_CHAN(cid):
         
 def PLAY_REC_CHAN(cid,name):
     url=(BASE+cid)
-    source_rec=weblogin.doLogin('',username,password,url)
+    source_rec=weblogin.doLogin('',username,password)
+    source_rec=weblogin.openUrl(url)
     match_rec=re.compile('source:."(.+?)"').findall(source_rec)
     if not match_rec:
         xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_ERROR, 8000, sound=True)
