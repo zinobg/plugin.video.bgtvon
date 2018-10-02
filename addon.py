@@ -119,11 +119,13 @@ def LIST_REC_CHAN(cid):
         
 def PLAY_REC_CHAN(cid,name):
     url=(BASE+cid)
-    source_rec=weblogin.doLogin('',username,password)
+    account_active='0'
+    account_active=check_validity(account_active)
+    if(account_active == '0'):
+        xbmcgui.Dialog().notification('[ You don\'t have valide subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
+        sys.exit("Subscribtion problem")
     source_rec=weblogin.openUrl(url)
     match_rec=re.compile('source:."(.+?)"').findall(source_rec)
-    if not match_rec:
-        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_ERROR, 8000, sound=True)
     for rec_url in match_rec:
         addLink('PLAY: '+name,rec_url,'')
 	
