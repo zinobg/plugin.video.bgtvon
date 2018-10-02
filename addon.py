@@ -16,7 +16,7 @@
 #    along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import urllib2, urllib, re, os
+import urllib2, urllib, re, os, datetime
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
 import weblogin
 
@@ -38,7 +38,12 @@ def LIST_CHANNELS():
     match=re.compile('<p><span.*>(.+?)<\/span><\/p>').findall(subscribe_source)
     for subs_text in match:
         account_active='1'
-        xbmc.log("Account is active: "+subs_text)
+        dates_match=re.compile('.* (.+?)-(.+?)-(.+?)\.').findall(subs_text)
+        for s_day,s_month,s_year in dates_match:
+            date_expire=datetime.datetime(int(s_year),int(s_month),int(s_day))
+            date_today=datetime.datetime.now()
+            days_delta=date_expire-date_today
+            xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
     # End of check
     source=weblogin.openUrl(BASE)
     if(account_active == '1'):
