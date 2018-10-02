@@ -30,9 +30,7 @@ BASE="http://www.bgtv-on.com/"
 subscribe_url=BASE+'subscribe'
 recording_url=BASE+'recording'
 
-def LIST_CHANNELS():
-    # Check if account is active
-    account_active='0'
+def check_validity(account_active):
     subscribe_source=weblogin.doLogin('',username,password)
     subscribe_source=weblogin.openUrl(subscribe_url)
     match=re.compile('<p><span.*>(.+?)<\/span><\/p>').findall(subscribe_source)
@@ -44,12 +42,18 @@ def LIST_CHANNELS():
             date_today=datetime.datetime.now()
             days_delta=date_expire-date_today
             xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
-    # End of check
+            if(days_delta.days <= 6):
+                xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]', 'Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
+	    return account_active
+
+def LIST_CHANNELS():
+    account_active='0'
+    account_active=check_validity(account_active)
     source=weblogin.openUrl(BASE)
     if(account_active == '1'):
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     elif(account_active == '0'):
-        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=False)
+        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
         xbmc.log("You don't have a valid account, so you are going to watch only free TVs.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     match=re.compile(match_pattern).findall(source)
