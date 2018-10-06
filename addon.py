@@ -42,7 +42,7 @@ def check_validity(account_active):
             date_today=datetime.datetime.now()
             days_delta=date_expire-date_today
             xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
-            if(days_delta.days <= 6):
+            if(days_delta.days <= 5):
                 xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]', 'Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
 	    return account_active
 
