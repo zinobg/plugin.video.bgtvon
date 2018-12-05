@@ -20,15 +20,19 @@ import urllib2, urllib, re, os, datetime
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
 import weblogin
 
-__settings__ = xbmcaddon.Addon()
-_thisPlugin = int(sys.argv[1])
-_pluginName = (sys.argv[0])
-username = __settings__.getSetting('username')
-password = __settings__.getSetting('password')
-header_string = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
+__settings__=xbmcaddon.Addon(id='plugin.video.bgtvon')
+_thisPlugin=int(sys.argv[1])
+_pluginName=(sys.argv[0])
+username=__settings__.getSetting('username')
+password=__settings__.getSetting('password')
+header_string='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
 BASE="http://www.bgtv-on.com/"
 subscribe_url=BASE+'subscribe'
 recording_url=BASE+'recording'
+onair_url=BASE+'onair'
+
+if not username or not password or not __settings__:
+    xbmcaddon.Addon().openSettings()
 
 def check_validity(account_active):
     subscribe_source=weblogin.doLogin('',username,password)
