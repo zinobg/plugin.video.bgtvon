@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#     Copyright (C) 2018 zinobg@gmail.com
+#     Copyright (C) 2018 inobg [at] gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,23 +16,42 @@
 #    along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import urllib2, urllib, re, os, datetime
+import urllib2, urllib, re, os, datetime, time
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
 import weblogin
 
-__settings__=xbmcaddon.Addon(id='plugin.video.bgtvon')
+__addon_id__='plugin.video.bgtvon'
+__Addon=xbmcaddon.Addon(__addon_id__)
+__settings__=xbmcaddon.Addon(id=__addon_id__)
 _thisPlugin=int(sys.argv[1])
 _pluginName=(sys.argv[0])
+recicon=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/recicon.png")
+tvchannel=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/tvchannel.png")
+programme=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/programme.png")
+dot=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/dot.png")
 username=__settings__.getSetting('username')
 password=__settings__.getSetting('password')
-header_string='Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0'
+timezone=__settings__.getSetting('index_tz')
 BASE="http://www.bgtv-on.com/"
 subscribe_url=BASE+'subscribe'
 recording_url=BASE+'recording'
+programme_url=BASE+'programme'
 onair_url=BASE+'onair'
 
 if not username or not password or not __settings__:
     xbmcaddon.Addon().openSettings()
+
+def time_convert(time_orig):
+    h,m=time_orig.split(':')
+    time_orig=datetime.time(int(h),int(m))
+    time_diff=abs(int(timezone)-13)
+    if(int(timezone)>13):
+        hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)+datetime.timedelta(hours=time_diff)).time()
+    elif(int(timezone)<13):
+        hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)-datetime.timedelta(hours=time_diff)).time()
+    h,m,s=str(hol).split(':')
+    time_mod=h+':'+m
+    return time_mod
 
 def check_validity(account_active):
     subscribe_source=weblogin.doLogin('',username,password)
@@ -85,41 +104,32 @@ def INDEX_CHANNELS(cid):
         for i in range(len(match)):
             match_what_to_play=re.compile('liveedge\/(.+?).stream').findall(match[i])
             for what_to_play in match_what_to_play:
-                addLink('PLAY: '+what_to_play,match[i],'')
+                addLink('PLAY: '+what_to_play,match[i],tvchannel)
     elif(source_ch.count('m3u8') == 1):
         match=match[0]
         match_what_to_play=re.compile('liveedge\/(.+?).stream').findall(match)
         if not match_what_to_play:
-            addLink('PLAY: '+match,match,'')
+            addLink('PLAY: '+match,match,tvchannel)
         for what_to_play in match_what_to_play:
-            addLink('PLAY: '+what_to_play,match,'')
+            addLink('PLAY: '+what_to_play,match,tvchannel)
 
 def LIST_REC():
-    req=urllib2.Request(recording_url)
-    req.add_header('User-Agent',header_string)
-    response=urllib2.urlopen(req)
-    source=response.read()
-    response.close()
-    match_rec=re.compile('<a href=recording(.+?).class=tab.>(.+?)<\/a>').findall(source)
+    source=weblogin.openUrl(recording_url)
+    match_rec=re.compile('<a href=recording(.+?)#t.class=tab.>(.+?)<\/a>').findall(source)
     for cid,name in match_rec:
         rec_url=(recording_url+cid)
-        addDir(name,rec_url,51,'')
+        addDir(name,rec_url,51,recicon)
 
-def LIST_REC_CHAN(cid):
-    req=urllib2.Request(cid)
-    req.add_header('User-Agent',header_string)
-    response=urllib2.urlopen(req)
-    source=response.read()
-    response.close()
-    match_rec=re.compile('(<div class=\"day\">(.+?)<\/div>)*(<a href=(.+?)><li><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span><div class="clear"><\/div><\/li><\/a>)').findall(source)
+def LIST_REC_CHAN(url):
+    source=weblogin.openUrl(url)
+    match_rec=re.compile('(<div class="day">(.+?)<\/div>)*(<a href=(.+?)><li><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
     for temp1,day,temp2,rec_url,time,name in match_rec:
         del temp1,temp2
-        if(day):
-            day_previous=day
-        else:
-            day=day_previous
-        name=('['+day+'] '+'('+time+') '+name)
-        addDir(name,rec_url,52,'')
+        if day is not '':
+            addLink('=['+day+']=','','')
+        time_convd=time_convert(time)
+        desc_txt=('['+time_convd+'] '+name)
+        addDir(desc_txt,rec_url,52,recicon)
         
 def PLAY_REC_CHAN(cid,name):
     url=(BASE+cid)
@@ -131,8 +141,26 @@ def PLAY_REC_CHAN(cid,name):
     source_rec=weblogin.openUrl(url)
     match_rec=re.compile('source:."(.+?)"').findall(source_rec)
     for rec_url in match_rec:
-        addLink('PLAY: '+name,rec_url,'')
-	
+        addLink('PLAY: '+name,rec_url,dot)
+
+def INDEX_PROG_CH():
+    source=weblogin.openUrl(programme_url)
+    match_prog=re.compile('<a href=programme\?cid=(.+?)#t.class=tab >(.+?)<\/a>').findall(source)
+    for cid,name in match_prog:
+        addDir(name,cid,71,programme)    
+
+def LIST_PROG_CH(cid,name):
+    url=programme_url+'?cid='+cid
+    source=weblogin.openUrl(url)
+    match_prog=re.compile('(<div class="day">(.+?)<\/div>)*(<li style="list-style: none;"><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
+    for temp1,day,temp2,time,name in match_prog:
+        del temp1,temp2
+        if day is not '':
+            addDir('=['+day+']=',cid,72,dot)
+        time_convd=time_convert(time)
+        desc_txt=('['+time_convd+'] '+name)
+        addDir(desc_txt,cid,72,dot)
+
 def get_params():
     param=[]
     paramstring=sys.argv[2]
@@ -150,6 +178,7 @@ def get_params():
                 param[splitparams[0]]=splitparams[1]
     return param
 
+# defining xbmc functions
 def addLink(name,url,iconimage):
     ok=True
     liz=xbmcgui.ListItem(name,iconImage="DefaultVideo.png",thumbnailImage=iconimage)
@@ -165,6 +194,7 @@ def addDir(name,cid,mode,iconimage):
     liz.setInfo(type="Video", infoLabels={ "Title": name })
     ok=xbmcplugin.addDirectoryItem(handle=_thisPlugin,url=u,listitem=liz,isFolder=True)
     return ok
+#
 
 params=get_params()
 cid=None
@@ -190,13 +220,16 @@ xbmc.log("Name: "+str(name))
 
 if mode==None or cid==None or len(cid)<1:
     dialog=xbmcgui.Dialog()
-    ret=dialog.select('',['НА ЖИВО','НА ЗАПИС'])
-    if(ret==0):
-        xbmc.log('Starting live tv')
+    menu=dialog.select('',['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
+    if(menu==0):
+        xbmc.log('Selected from menu: onair')
         LIST_CHANNELS()
-    elif(ret==1):
-        xbmc.log('Starting recordings')
+    elif(menu==1):
+        xbmc.log('Selected from menu: recording')
         LIST_REC()
+    elif(menu==2):
+        xbmc.log('Selected from menu: programme')
+        INDEX_PROG_CH()
 
 elif mode==20:
     INDEX_CHANNELS(cid)
@@ -209,5 +242,11 @@ elif mode==51:
 
 elif mode==52:
     PLAY_REC_CHAN(cid,name)
+
+elif mode==71:
+    LIST_PROG_CH(cid,name)
+
+elif mode==72:
+    INDEX_CHANNELS(cid)
 
 xbmcplugin.endOfDirectory(_thisPlugin)
