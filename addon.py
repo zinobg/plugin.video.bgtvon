@@ -27,6 +27,7 @@ _thisPlugin=int(sys.argv[1])
 _pluginName=(sys.argv[0])
 recicon=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/recicon.png")
 tvchannel=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/tvchannel.png")
+tvchannelhd=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/tvchannelhd.png")
 programme=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/programme.png")
 dot=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/dot.png")
 username=__settings__.getSetting('username')
@@ -45,9 +46,9 @@ def time_convert(time_orig):
     h,m=time_orig.split(':')
     time_orig=datetime.time(int(h),int(m))
     time_diff=abs(int(timezone)-13)
-    if int(timezone)>13:
+    if(int(timezone)>13):
         hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)+datetime.timedelta(hours=time_diff)).time()
-    elif int(timezone)<13:
+    elif(int(timezone)<13):
         hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)-datetime.timedelta(hours=time_diff)).time()
     h,m,s=str(hol).split(':')
     time_mod=h+':'+m
@@ -65,23 +66,30 @@ def check_validity(account_active):
             date_today=datetime.datetime.now()
             days_delta=date_expire-date_today
             xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
-            if days_delta.days<=5:
+            if(days_delta.days <= 5):
                 xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]', 'Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
-    return account_active
+	return account_active
 
+def tvi(name):
+    if "high" in name:
+        return tvchannelhd
+    else:
+        return tvchannel
+	
 def LIST_CHANNELS():
     account_active='0'
     account_active=check_validity(account_active)
     source=weblogin.openUrl(BASE)
-    if account_active=='1':
+    if(account_active == '1'):
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
-    elif account_active=='0':
+    elif(account_active == '0'):
         xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
         xbmc.log("You don't have a valid account, so you are going to watch only free TVs.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
+    xbmc.log("mp is "+match_pattern)
     match=re.compile(match_pattern).findall(source)
     for cid,ch_image,ch_current in match:
-        ch_image=(BASE + ch_image)
+        ch_image = (BASE + ch_image)
         addDir(ch_current,cid,20,ch_image)
 
 def INDEX_CHANNELS(cid):
@@ -98,20 +106,23 @@ def INDEX_CHANNELS(cid):
     search_string=search_string+end_string
     match=re.compile(search_string).findall(source_ch)
     xbmc.log('match='+str(match))
-    if source_ch.count('m3u8')>1:
+    if(source_ch.count('m3u8') > 1):
         match=match[0]
         i = 0
         for i in range(len(match)):
             match_what_to_play=re.compile('liveedge\/(.+?).stream').findall(match[i])
             for what_to_play in match_what_to_play:
-                addLink('PLAY: '+what_to_play,match[i],tvchannel)
-    elif source_ch.count('m3u8')==1:
+                tvicon=tvi(what_to_play)
+                addLink('PLAY: '+what_to_play,match[i],tvicon)
+    elif(source_ch.count('m3u8') == 1):
         match=match[0]
         match_what_to_play=re.compile('liveedge\/(.+?).stream').findall(match)
         if not match_what_to_play:
-            addLink('PLAY: '+match,match,tvchannel)
+            tvicon=tvi(match)
+            addLink('PLAY: '+match,match,tvicon)
         for what_to_play in match_what_to_play:
-            addLink('PLAY: '+what_to_play,match,tvchannel)
+            tvicon=tvi(what_to_play)
+            addLink('PLAY: '+what_to_play,match,tvicon)
 
 def LIST_REC():
     source=weblogin.openUrl(recording_url)
@@ -135,7 +146,7 @@ def PLAY_REC_CHAN(cid,name):
     url=(BASE+cid)
     account_active='0'
     account_active=check_validity(account_active)
-    if account_active=='0':
+    if(account_active == '0'):
         xbmcgui.Dialog().notification('[ You don\'t have valide subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
         sys.exit("Subscribtion problem")
     source_rec=weblogin.openUrl(url)
@@ -221,13 +232,13 @@ xbmc.log("Name: "+str(name))
 if mode==None or cid==None or len(cid)<1:
     dialog=xbmcgui.Dialog()
     menu=dialog.select('',['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
-    if menu==0:
+    if(menu==0):
         xbmc.log('Selected from menu: onair')
         LIST_CHANNELS()
-    elif menu==1:
+    elif(menu==1):
         xbmc.log('Selected from menu: recording')
         LIST_REC()
-    elif menu==2:
+    elif(menu==2):
         xbmc.log('Selected from menu: programme')
         INDEX_PROG_CH()
 
