@@ -68,7 +68,7 @@ def check_validity(account_active):
             xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
             if(days_delta.days <= 5):
                 xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]', 'Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
-	return account_active
+    return account_active
 
 def tvi(name):
     if "high" in name:
@@ -80,9 +80,9 @@ def LIST_CHANNELS():
     account_active='0'
     account_active=check_validity(account_active)
     source=weblogin.openUrl(BASE)
-    if(account_active == '1'):
+    if(account_active=='1'):
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
-    else:
+    elif(account_active=='0'):
         xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
         xbmc.log("You don't have a valid account, so you are going to watch only free TVs.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
