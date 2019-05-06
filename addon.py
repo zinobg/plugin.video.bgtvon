@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#     Copyright (C) 2018 inobg [at] gmail.com
+#     Copyright (C) 2018 zinobg [at] gmail.com
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
