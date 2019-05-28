@@ -20,19 +20,23 @@ import urllib2, urllib, re, os, datetime, time
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
 import weblogin
 
+# Base variables
 __addon_id__='plugin.video.bgtvon'
 __Addon=xbmcaddon.Addon(__addon_id__)
 __settings__=xbmcaddon.Addon(id=__addon_id__)
 _thisPlugin=int(sys.argv[1])
 _pluginName=(sys.argv[0])
+# Icon variables
 recicon=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/recicon.png")
 tvchannel=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/tvchannel.png")
 tvchannelhd=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/tvchannelhd.png")
 programme=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/programme.png")
 dot=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/dot.png")
+# Settings variables
 username=__settings__.getSetting('username')
 password=__settings__.getSetting('password')
 timezone=__settings__.getSetting('index_tz')
+# Web links variables
 BASE="http://www.bgtv-on.com/"
 subscribe_url=BASE+'subscribe'
 recording_url=BASE+'recording'
@@ -46,9 +50,9 @@ def time_convert(time_orig):
     h,m=time_orig.split(':')
     time_orig=datetime.time(int(h),int(m))
     time_diff=abs(int(timezone)-13)
-    if(int(timezone)>13):
+    if int(timezone)>13:
         hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)+datetime.timedelta(hours=time_diff)).time()
-    elif(int(timezone)<13):
+    elif int(timezone)<13:
         hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)-datetime.timedelta(hours=time_diff)).time()
     h,m,s=str(hol).split(':')
     time_mod=h+':'+m
@@ -59,14 +63,14 @@ def check_validity(account_active):
     subscribe_source=weblogin.openUrl(subscribe_url)
     match=re.compile('<p><span.*>(.+?)<\/span><\/p>').findall(subscribe_source)
     for subs_text in match:
-        account_active='1'
+        account_active=True
         dates_match=re.compile('.* (.+?)-(.+?)-(.+?)\.').findall(subs_text)
         for s_day,s_month,s_year in dates_match:
             date_expire=datetime.datetime(int(s_year),int(s_month),int(s_day))
             date_today=datetime.datetime.now()
             days_delta=date_expire-date_today
             xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
-            if(days_delta.days <= 5):
+            if days_delta.days <= 5:
                 xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]', 'Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
     return account_active
 
@@ -75,16 +79,22 @@ def tvi(name):
         return tvchannelhd
     else:
         return tvchannel
-	
+
+def source_list(src):
+    src_list=src.split(',')
+    for i in range(len(src_list)):
+        src_list[i]=src_list[i].lstrip('[').rstrip(']').strip('"')
+    return src_list
+    
 def LIST_CHANNELS():
-    account_active='0'
+    account_active=False
     account_active=check_validity(account_active)
     source=weblogin.openUrl(BASE)
-    if(account_active=='1'):
+    if account_active == True:
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
-    elif(account_active=='0'):
+    elif account_active == False:
         xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
-        xbmc.log("You don't have a valid account, so you are going to watch only free TVs.")
+        xbmc.log("You don't have a valid account, so you are going to watch the free TVs only.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     match=re.compile(match_pattern).findall(source)
     for cid,ch_image,ch_current in match:
@@ -95,34 +105,17 @@ def INDEX_CHANNELS(cid):
     url=(BASE+"teko/getchaclap_mbr.php?cid="+cid)
     source_ch=weblogin.doLogin('',username,password)
     source_ch=weblogin.openUrl(url)
-    n=source_ch.count('m3u8')
-    item_plus=',"(.+?)"'
-    search_string='\["(.+?)"'
-    end_string='\]'
-    while n > 1:
-        search_string=search_string+item_plus
-        n -=1
-    search_string=search_string+end_string
-    match=re.compile(search_string).findall(source_ch)
-    xbmc.log('match='+str(match))
-    if(source_ch.count('m3u8') > 1):
-        match=match[0]
-        i=0
-        for i in range(len(match)):
-            match_what_to_play=re.compile('liveedge\/(.+?).stream').findall(match[i])
-            for what_to_play in match_what_to_play:
-                tvicon=tvi(what_to_play)
-                addLink('PLAY: '+what_to_play,match[i],tvicon)
-    elif(source_ch.count('m3u8') == 1):
-        match=match[0]
-        match_what_to_play=re.compile('liveedge\/(.+?).stream').findall(match)
-        if not match_what_to_play:
-            tvicon=tvi(match)
-            addLink('PLAY: '+match,match,tvicon)
-        for what_to_play in match_what_to_play:
-            tvicon=tvi(what_to_play)
-            addLink('PLAY: '+what_to_play,match,tvicon)
-
+    src_lst=source_list(source_ch)
+    for play_lst in src_lst:
+        title_lst=re.compile('liveedge\/(.+?).stream').findall(play_lst)
+        for title_ply in title_lst:
+            try:
+                tvicon=tvi(title_ply)
+                title_ply="["+title_ply.replace('_','] [').upper()+"]"
+                addLink('PLAY: '+title_ply,play_lst,tvicon)
+            except:
+                continue
+                
 def LIST_REC():
     source=weblogin.openUrl(recording_url)
     match_rec=re.compile('<a href=recording(.+?)#t.class=tab.>(.+?)<\/a>').findall(source)
@@ -143,9 +136,9 @@ def LIST_REC_CHAN(url):
         
 def PLAY_REC_CHAN(cid,name):
     url=(BASE+cid)
-    account_active='0'
+    account_active=False
     account_active=check_validity(account_active)
-    if(account_active == '0'):
+    if account_active == False:
         xbmcgui.Dialog().notification('[ You don\'t have valide subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
         sys.exit("Subscribtion problem")
     source_rec=weblogin.openUrl(url)

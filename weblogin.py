@@ -32,10 +32,6 @@ def initCookie():
     else:             
         False
 
-# save cookie to file
-def updateCookie():
-    cj.save(cookiepath)
-
 # check if login is successful
 def checkLogin(source_login,username):
     logged_in_string1='logout'
@@ -53,7 +49,7 @@ def openUrl(url):
     response=urllib2.urlopen(req)
     source=response.read()
     response.close()
-    updateCookie()
+    cj.save(cookiepath)
     return source
 
 # login to page
