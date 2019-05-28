@@ -1,4 +1,4 @@
-# plugin.video.bgtvon version 3.3
+# plugin.video.bgtvon version 3.4
 Kodi addon to watch tv streams from http://www.bgtv-on.com/. An account is required. 
 
 Readme for Kodi bgtv-on.com plugin created by zinobg@gmail.com
