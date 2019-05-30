@@ -74,12 +74,6 @@ def check_validity(account_active):
                 xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]', 'Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
     return account_active
 
-def tvi(name):
-    if "high" in name:
-        return tvchannelhd
-    else:
-        return tvchannel
-
 def LIST_CHANNELS():
     account_active=False
     account_active=check_validity(account_active)
@@ -105,7 +99,9 @@ def INDEX_CHANNELS(cid):
         title_lst=re.compile('liveedge\/(.+?).stream').findall(src_list[i])
         for title_ply in title_lst:
             try:
-                tvicon=tvi(title_ply)
+                tvicon=tvchannel
+                if "high" in title_ply:
+                    tvicon=tvchannelhd
                 title_ply="["+title_ply.replace('_','] [').upper()+"]"
                 addLink('PLAY: '+title_ply,src_list[i],tvicon)
             except:
