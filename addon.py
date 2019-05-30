@@ -80,12 +80,6 @@ def tvi(name):
     else:
         return tvchannel
 
-def source_list(src):
-    src_list=src.split(',')
-    for i in range(len(src_list)):
-        src_list[i]=src_list[i].lstrip('[').rstrip(']').strip('"')
-    return src_list
-    
 def LIST_CHANNELS():
     account_active=False
     account_active=check_validity(account_active)
@@ -105,14 +99,15 @@ def INDEX_CHANNELS(cid):
     url=(BASE+"teko/getchaclap_mbr.php?cid="+cid)
     source_ch=weblogin.doLogin('',username,password)
     source_ch=weblogin.openUrl(url)
-    src_lst=source_list(source_ch)
-    for play_lst in src_lst:
-        title_lst=re.compile('liveedge\/(.+?).stream').findall(play_lst)
+    src_list=source_ch.split(',')
+    for i in range(len(src_list)):
+        src_list[i]=src_list[i].lstrip('[').rstrip(']').strip('"')
+        title_lst=re.compile('liveedge\/(.+?).stream').findall(src_list[i])
         for title_ply in title_lst:
             try:
                 tvicon=tvi(title_ply)
                 title_ply="["+title_ply.replace('_','] [').upper()+"]"
-                addLink('PLAY: '+title_ply,play_lst,tvicon)
+                addLink('PLAY: '+title_ply,src_list[i],tvicon)
             except:
                 continue
                 
