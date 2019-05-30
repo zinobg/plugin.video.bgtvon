@@ -139,7 +139,7 @@ def PLAY_REC_CHAN(cid,name):
     account_active=False
     account_active=check_validity(account_active)
     if account_active == False:
-        xbmcgui.Dialog().notification('[ You don\'t have valide subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
+        xbmcgui.Dialog().notification('[ You don\'t have valid subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
         sys.exit("Subscribtion problem")
     source_rec=weblogin.openUrl(url)
     match_rec=re.compile('source:."(.+?)"').findall(source_rec)
