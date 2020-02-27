@@ -16,36 +16,193 @@
 #    along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import urllib2, urllib, re, os, datetime, time
-import xbmc, xbmcgui, xbmcplugin, xbmcaddon
+import datetime,time
+from re import compile as Compile
+import xbmc,xbmcgui
+from xbmcaddon import Addon
+from xbmcswift2 import Plugin,ListItem
 import weblogin
 
-# Base variables
-__addon_id__='plugin.video.bgtvon'
-__Addon=xbmcaddon.Addon(__addon_id__)
-__settings__=xbmcaddon.Addon(id=__addon_id__)
-_thisPlugin=int(sys.argv[1])
-_pluginName=(sys.argv[0])
-# Icon variables
-recicon=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/recicon.png")
-tvchannel=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/tvchannel.png")
-tvchannelhd=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/tvchannelhd.png")
-programme=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/programme.png")
-dot=xbmc.translatePath(__Addon.getAddonInfo('path')+"/resources/png/dot.png")
-# Settings variables
+plugin = plugin = Plugin()
+
+'''
+ Settings variables
+'''
+__settings__=Addon()
 username=__settings__.getSetting('username')
 password=__settings__.getSetting('password')
 timezone=__settings__.getSetting('index_tz')
-# Web links variables
+quality=__settings__.getSetting('quality')
+vid_icon=xbmc.translatePath(__settings__.getAddonInfo('path')+"/resources/png/vid_icon.png")
+prog_icon=xbmc.translatePath(__settings__.getAddonInfo('path')+"/resources/png/prog_icon.png")
+'''
+ Web links variables
+'''
 BASE="http://www.bgtv-on.com/"
 subscribe_url=BASE+'subscribe'
 recording_url=BASE+'recording'
 programme_url=BASE+'programme'
-onair_url=BASE+'onair'
+  
+@plugin.route('/')
+def menu_index():
+    dialog=xbmcgui.Dialog()
+    menu=dialog.select('',['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
+    if menu==0:
+        plugin.redirect(plugin.url_for('onair_index'))
+    if menu==1:
+        plugin.redirect(plugin.url_for('rec_index'))
+    if menu==2:
+        plugin.redirect(plugin.url_for('prog_index'))
 
-if not username or not password or not __settings__:
-    xbmcaddon.Addon().openSettings()
+@plugin.route('/stream/')
+def onair_index():
+    items=[]
+    xbmc.log('path: [/stream/]')    
+    account_active=check_validity()
+    source=weblogin.openUrl(BASE,account_active[1])
+    if account_active[0]==True:
+        match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
+    elif account_active[0]==False:
+        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
+        xbmc.log("You don't have a valid account, so you are going to watch the free TVs only.")
+        match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
+    match=Compile(match_pattern).findall(source)
+    for cid,ch_image,ch_current in match:
+        ch_image=BASE+ch_image
+        source_url=BASE+"teko/getchaclap_mbr.php?cid="+cid
+        item={'label':ch_current,'thumbnail':ch_image,'path':plugin.url_for('onair_stream',url=source_url)}
+        items.append(item)
+    return plugin.finish(items)
+            
+@plugin.route('/stream/<url>/')    
+def onair_stream(url):
+    xbmc.log('path: [/stream/'+url+']')
+    cookiepath=weblogin.doLogin(username,password)
+    source=weblogin.openUrl(url,cookiepath)
+    src_list=list(source.split(","))
+    if quality=='moderate':
+        xbmc.log('1-quality: '+quality+' and nuber of streams: '+str(len(src_list)))
+        items=[]
+        for i in range(len(src_list)):
+            play_list=correct_stream_url(src_list[i])
+            item={'label':play_list[0],'path':play_list[1],'is_playable':True}
+            items.append(item)
+        return plugin.finish(items)
+    '''
+    Presuming that the first steam has the lowest quality and the last - the highest
+    0 - getting the first stream link
+    1 - getting the last stream link
+    '''
+    if quality=='low' or len(src_list)==1:
+        element=0
+    if quality=='high' and len(src_list)>1:
+        element=-1
+    xbmc.log('2-quality: '+quality+' and nuber of streams: '+str(len(src_list)))
+    play_list=correct_stream_url(src_list[element])
+    item={'label':play_list[0],'path':play_list[1]}
+    plugin.play_video(item)
+    return plugin.set_resolved_url()
+    
+@plugin.route('/prog/')
+def prog_index():
+    xbmc.log('path: [/prog/')
+    items=[]
+    source=weblogin.openUrl(programme_url,'')
+    match=Compile('<a href=programme\?cid=(.+?)#..class=tab >(.+?)<\/a>').findall(source)
+    for cid,name in match:
+        url=programme_url+'?cid='+cid
+        item={'label':name,'path':plugin.url_for('prod_browse',url=url)}
+        items.append(item)
+    return plugin.finish(items)
 
+@plugin.route('/prog/<url>/')
+def prod_browse(url):
+    xbmc.log('path: [/prog/'+url+']')
+    items=[]
+    source=weblogin.openUrl(url,'')
+    match_prog=Compile('(<div class="day">(.+?)<\/div>)*(<li style="list-style: none;"><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
+    for temp1,day,temp2,time,name in match_prog:
+        del temp1,temp2
+        if day:
+            item={'label':'=['+day+']=','path':''}
+            items.append(item)
+        time_convd=time_convert(time)
+        item={'label':'['+time_convd+'] '+name,'thumbnail':prog_icon,'path':plugin.url_for('prod_browse',url=url)}
+        items.append(item)
+    return plugin.finish(items)
+
+@plugin.route('/rec/')    
+def rec_index():
+    xbmc.log('path: [/rec/]')
+    items=[]
+    source=weblogin.openUrl(recording_url,'')
+    match=Compile('<a href=recording(.+?)#..class=tab.>(.+?)<\/a>').findall(source)
+    for cid,name in match:
+        url=(recording_url+cid)
+        item={'label':name,'path':plugin.url_for('rec_browse',url=url)}
+        items.append(item)
+    return plugin.finish(items)
+
+@plugin.route('/rec/<url>')
+def rec_browse(url):
+    xbmc.log('path: [/rec/'+url+']')
+    items=[]
+    source=weblogin.openUrl(url,'')
+    match=Compile('(<div class="day">(.+?)<\/div>)*(<a href=(.+?)><li><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
+    for temp1,day,temp2,rec_url,time,name in match:
+        del temp1,temp2
+        if day:
+            item={'label':'=['+day+']=','path':plugin.url_for('rec_browse',url=url)}
+            items.append(item)
+        time_convd=time_convert(time)
+        rec_url=BASE+rec_url
+        item={'label':'['+time_convd+'] '+name,'thumbnail':vid_icon,'path':plugin.url_for('rec_play',url=rec_url)}
+        items.append(item)
+    return plugin.finish(items)
+    
+@plugin.route('/rec/play/<url>')
+def rec_play(url):
+    xbmc.log('path: [/rec/play/'+url+']')
+    account_active=check_validity()
+    if account_active[0] == False:
+        xbmcgui.Dialog().notification('[ You don\'t have valid subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
+        raise SystemExit
+    source=weblogin.openUrl(url,account_active[1])
+    match=Compile('source:."(.+?)"').findall(source)
+    for rec_url in match:
+        item={'label':rec_url,'path':rec_url}
+        plugin.play_video(item)
+    return plugin.set_resolved_url()
+'''
+function that returns a tupple: title to show and stripped stream link
+'''
+def correct_stream_url(raw_stream):
+    stream=raw_stream.lstrip('[').rstrip(']').strip('"')
+    titles=Compile('liveedge\/(.+?).stream').findall(stream)
+    for title in titles:
+        title="["+title.replace('_','] [').upper()+"]"
+    return (title,stream)
+'''
+returns True if the account has a valid subscription
+'''
+def check_validity(account_active=False):
+    cookiepath=weblogin.doLogin(username,password)
+    subscribe_source=weblogin.openUrl(subscribe_url,cookiepath)
+    match=Compile('<p><span.*>(.+?)<\/span><\/p>').findall(subscribe_source)
+    for subs_text in match:
+        account_active=True
+        dates_match=Compile('.* (.+?)-(.+?)-(.+?)\.').findall(subs_text)
+        for s_day,s_month,s_year in dates_match:
+            date_expire=datetime.datetime(int(s_year),int(s_month),int(s_day))
+            date_today=datetime.datetime.now()
+            days_delta=date_expire-date_today
+            xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
+            if days_delta.days <= 5:
+                xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]','Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
+    return (account_active,cookiepath)
+'''
+time convert based on TZ in conf
+'''
 def time_convert(time_orig):
     h,m=time_orig.split(':')
     time_orig=datetime.time(int(h),int(m))
@@ -55,192 +212,17 @@ def time_convert(time_orig):
     elif int(timezone)<13:
         hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)-datetime.timedelta(hours=time_diff)).time()
     h,m,s=str(hol).split(':')
-    time_mod=h+':'+m
-    return time_mod
+    del s
+    time_modified=h+':'+m
+    return time_modified
+'''
+the main function
+'''
+def main():
+    if not username or not password or not __settings__:
+        plugin.open_settings()
+    plugin.run()
 
-def check_validity(account_active):
-    subscribe_source=weblogin.doLogin('',username,password)
-    subscribe_source=weblogin.openUrl(subscribe_url)
-    match=re.compile('<p><span.*>(.+?)<\/span><\/p>').findall(subscribe_source)
-    for subs_text in match:
-        account_active=True
-        dates_match=re.compile('.* (.+?)-(.+?)-(.+?)\.').findall(subs_text)
-        for s_day,s_month,s_year in dates_match:
-            date_expire=datetime.datetime(int(s_year),int(s_month),int(s_day))
-            date_today=datetime.datetime.now()
-            days_delta=date_expire-date_today
-            xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
-            if days_delta.days <= 5:
-                xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]', 'Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
-    return account_active
-
-def LIST_CHANNELS():
-    account_active=False
-    account_active=check_validity(account_active)
-    source=weblogin.openUrl(BASE)
-    if account_active == True:
-        match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
-    elif account_active == False:
-        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
-        xbmc.log("You don't have a valid account, so you are going to watch the free TVs only.")
-        match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
-    match=re.compile(match_pattern).findall(source)
-    for cid,ch_image,ch_current in match:
-        ch_image = (BASE + ch_image)
-        addDir(ch_current,cid,20,ch_image)
-
-def INDEX_CHANNELS(cid):
-    url=(BASE+"teko/getchaclap_mbr.php?cid="+cid)
-    source_ch=weblogin.doLogin('',username,password)
-    source_ch=weblogin.openUrl(url)
-    src_list=source_ch.split(',')
-    for i in range(len(src_list)):
-        src_list[i]=src_list[i].lstrip('[').rstrip(']').strip('"')
-        title_lst=re.compile('liveedge\/(.+?).stream').findall(src_list[i])
-        for title_ply in title_lst:
-            try:
-                tvicon=tvchannel
-                if "high" in title_ply:
-                    tvicon=tvchannelhd
-                title_ply="["+title_ply.replace('_','] [').upper()+"]"
-                addLink('PLAY: '+title_ply,src_list[i],tvicon)
-            except:
-                continue
-                
-def LIST_REC():
-    source=weblogin.openUrl(recording_url)
-    match_rec=re.compile('<a href=recording(.+?)#t.class=tab.>(.+?)<\/a>').findall(source)
-    for cid,name in match_rec:
-        rec_url=(recording_url+cid)
-        addDir(name,rec_url,51,recicon)
-
-def LIST_REC_CHAN(url):
-    source=weblogin.openUrl(url)
-    match_rec=re.compile('(<div class="day">(.+?)<\/div>)*(<a href=(.+?)><li><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
-    for temp1,day,temp2,rec_url,time,name in match_rec:
-        del temp1,temp2
-        if day is not '':
-            addLink('=['+day+']=','','')
-        time_convd=time_convert(time)
-        desc_txt=('['+time_convd+'] '+name)
-        addDir(desc_txt,rec_url,52,recicon)
-        
-def PLAY_REC_CHAN(cid,name):
-    url=(BASE+cid)
-    account_active=False
-    account_active=check_validity(account_active)
-    if account_active == False:
-        xbmcgui.Dialog().notification('[ You don\'t have valid subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
-        sys.exit("Subscribtion problem")
-    source_rec=weblogin.openUrl(url)
-    match_rec=re.compile('source:."(.+?)"').findall(source_rec)
-    for rec_url in match_rec:
-        addLink('PLAY: '+name,rec_url,dot)
-
-def INDEX_PROG_CH():
-    source=weblogin.openUrl(programme_url)
-    match_prog=re.compile('<a href=programme\?cid=(.+?)#t.class=tab >(.+?)<\/a>').findall(source)
-    for cid,name in match_prog:
-        addDir(name,cid,71,programme)    
-
-def LIST_PROG_CH(cid,name):
-    url=programme_url+'?cid='+cid
-    source=weblogin.openUrl(url)
-    match_prog=re.compile('(<div class="day">(.+?)<\/div>)*(<li style="list-style: none;"><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
-    for temp1,day,temp2,time,name in match_prog:
-        del temp1,temp2
-        if day is not '':
-            addDir('=['+day+']=',cid,72,dot)
-        time_convd=time_convert(time)
-        desc_txt=('['+time_convd+'] '+name)
-        addDir(desc_txt,cid,72,dot)
-
-def get_params():
-    param=[]
-    paramstring=sys.argv[2]
-    if len(paramstring)>=2:
-        params=sys.argv[2]
-        cleanedparams=params.replace('?','')
-        if (params[len(params)-1]=='/'):
-            params=params[0:len(params)-2]
-        pairsofparams=cleanedparams.split('&')
-        param={}
-        for i in range(len(pairsofparams)):
-            splitparams={}
-            splitparams=pairsofparams[i].split('=')
-            if (len(splitparams))==2:
-                param[splitparams[0]]=splitparams[1]
-    return param
-
-# defining xbmc functions
-def addLink(name,url,iconimage):
-    ok=True
-    liz=xbmcgui.ListItem(name,iconImage="DefaultVideo.png",thumbnailImage=iconimage)
-    liz.setInfo(type="Video",infoLabels={ "Title": name })
-    liz.setProperty('IsPlayable','true')
-    ok=xbmcplugin.addDirectoryItem(handle=_thisPlugin,url=url,listitem=liz)
-    return ok
-
-def addDir(name,cid,mode,iconimage):
-    u=_pluginName+"?cid="+urllib.quote_plus(cid)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)
-    ok=True
-    liz=xbmcgui.ListItem(name,iconImage="DefaultFolder.png",thumbnailImage=iconimage)
-    liz.setInfo(type="Video", infoLabels={ "Title": name })
-    ok=xbmcplugin.addDirectoryItem(handle=_thisPlugin,url=u,listitem=liz,isFolder=True)
-    return ok
-#
-
-params=get_params()
-cid=None
-name=None
-mode=None
-
-try:
-    cid=urllib.unquote_plus(params["cid"])
-except:
-    pass
-try:
-    name=urllib.unquote_plus(params["name"])
-except:
-    pass
-try:
-    mode=int(params["mode"])
-except:
-    pass
-
-xbmc.log("Mode: "+str(mode))
-xbmc.log("CID: "+str(cid))
-xbmc.log("Name: "+str(name))
-
-if mode==None or cid==None or len(cid)<1:
-    dialog=xbmcgui.Dialog()
-    menu=dialog.select('',['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
-    if(menu==0):
-        xbmc.log('Selected from menu: onair')
-        LIST_CHANNELS()
-    elif(menu==1):
-        xbmc.log('Selected from menu: recording')
-        LIST_REC()
-    elif(menu==2):
-        xbmc.log('Selected from menu: programme')
-        INDEX_PROG_CH()
-
-elif mode==20:
-    INDEX_CHANNELS(cid)
-
-elif mode==50:
-    LIST_REC()
-
-elif mode==51:
-    LIST_REC_CHAN(cid)
-
-elif mode==52:
-    PLAY_REC_CHAN(cid,name)
-
-elif mode==71:
-    LIST_PROG_CH(cid,name)
-
-elif mode==72:
-    INDEX_CHANNELS(cid)
-
-xbmcplugin.endOfDirectory(_thisPlugin)
+if __name__ == '__main__':
+    main()
+    
