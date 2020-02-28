@@ -19,11 +19,12 @@
 import datetime,time
 from re import compile as Compile
 import xbmc,xbmcgui
+import json
 from xbmcaddon import Addon
-from xbmcswift2 import Plugin,ListItem
+from xbmcswift2 import Plugin
 import weblogin
 
-plugin = plugin = Plugin()
+plugin = Plugin()
 
 '''
  Settings variables
@@ -38,15 +39,14 @@ prog_icon=xbmc.translatePath(__settings__.getAddonInfo('path')+"/resources/png/p
 '''
  Web links variables
 '''
-BASE="http://www.bgtv-on.com/"
+BASE='http://www.bgtv-on.com/'
 subscribe_url=BASE+'subscribe'
 recording_url=BASE+'recording'
 programme_url=BASE+'programme'
   
 @plugin.route('/')
 def menu_index():
-    dialog=xbmcgui.Dialog()
-    menu=dialog.select('',['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
+    menu=xbmcgui.Dialog().select('',['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
     if menu==0:
         plugin.redirect(plugin.url_for('onair_index'))
     if menu==1:
@@ -63,20 +63,20 @@ def onair_index():
     if account_active[0]==True:
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     elif account_active[0]==False:
-        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
+        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,10000,sound=True)
         xbmc.log("You don't have a valid account, so you are going to watch the free TVs only.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     match=Compile(match_pattern).findall(source)
     for cid,ch_image,ch_current in match:
         ch_image=BASE+ch_image
-        source_url=BASE+"teko/getchaclap_mbr.php?cid="+cid
-        item={'label':ch_current,'thumbnail':ch_image,'path':plugin.url_for('onair_stream',url=source_url)}
+        item={'label':ch_current,'thumbnail':ch_image,'path':plugin.url_for('onair_stream',cid=cid,icon=ch_image)}
         items.append(item)
     return plugin.finish(items)
             
-@plugin.route('/stream/<url>/')    
-def onair_stream(url):
-    xbmc.log('path: [/stream/'+url+']')
+@plugin.route('/stream/<cid>/<icon>/')    
+def onair_stream(cid,icon):
+    xbmc.log('path: [/stream/'+cid+''+icon+']')
+    url=BASE+"teko/getchaclap_mbr.php?cid="+cid
     cookiepath=weblogin.doLogin(username,password)
     source=weblogin.openUrl(url,cookiepath)
     src_list=list(source.split(","))
@@ -100,7 +100,20 @@ def onair_stream(url):
     xbmc.log('2-quality: '+quality+' and nuber of streams: '+str(len(src_list)))
     play_list=correct_stream_url(src_list[element])
     item={'label':play_list[0],'path':play_list[1]}
+    '''
+    loading json clap conf
+    '''
+    source_clap=weblogin.openUrl(BASE+'teko/onairclap.php',cookiepath)
+    clap_json_config=json.loads(source_clap)
+    for i in range(len(clap_json_config)):
+        if clap_json_config[i]['cid']==cid:
+            text1=clap_json_config[i]['chName']
+            text2=clap_json_config[i]['name']
+    '''
+    playing the stream
+    '''
     plugin.play_video(item)
+    xbmcgui.Dialog().notification(text1,text2,icon,10000,sound=False)
     return plugin.set_resolved_url()
     
 @plugin.route('/prog/')
@@ -110,24 +123,23 @@ def prog_index():
     source=weblogin.openUrl(programme_url,'')
     match=Compile('<a href=programme\?cid=(.+?)#..class=tab >(.+?)<\/a>').findall(source)
     for cid,name in match:
-        url=programme_url+'?cid='+cid
-        item={'label':name,'path':plugin.url_for('prod_browse',url=url)}
+        item={'label':name,'path':plugin.url_for('prod_browse',cid=cid)}
         items.append(item)
     return plugin.finish(items)
 
-@plugin.route('/prog/<url>/')
-def prod_browse(url):
-    xbmc.log('path: [/prog/'+url+']')
+@plugin.route('/prog/<cid>/')
+def prod_browse(cid):
+    xbmc.log('path: [/prog/'+cid+']')
     items=[]
+    url=programme_url+'?cid='+cid
     source=weblogin.openUrl(url,'')
     match_prog=Compile('(<div class="day">(.+?)<\/div>)*(<li style="list-style: none;"><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
     for temp1,day,temp2,time,name in match_prog:
-        del temp1,temp2
         if day:
-            item={'label':'=['+day+']=','path':''}
+            item={'label':'=['+day+']=','path':plugin.url_for('prod_browse',cid=cid)}
             items.append(item)
         time_convd=time_convert(time)
-        item={'label':'['+time_convd+'] '+name,'thumbnail':prog_icon,'path':plugin.url_for('prod_browse',url=url)}
+        item={'label':'['+time_convd+'] '+name,'thumbnail':prog_icon,'path':plugin.url_for('prod_browse',cid=cid)}
         items.append(item)
     return plugin.finish(items)
 
@@ -138,40 +150,52 @@ def rec_index():
     source=weblogin.openUrl(recording_url,'')
     match=Compile('<a href=recording(.+?)#..class=tab.>(.+?)<\/a>').findall(source)
     for cid,name in match:
-        url=(recording_url+cid)
-        item={'label':name,'path':plugin.url_for('rec_browse',url=url)}
+        item={'label':name,'path':plugin.url_for('rec_browse',cid=cid)}
         items.append(item)
     return plugin.finish(items)
 
-@plugin.route('/rec/<url>')
-def rec_browse(url):
-    xbmc.log('path: [/rec/'+url+']')
+@plugin.route('/rec/<cid>/')
+def rec_browse(cid):
+    xbmc.log('path: [/rec/'+cid+']')
     items=[]
+    url=recording_url+cid
+    cid=cid.split('=')[1]
     source=weblogin.openUrl(url,'')
     match=Compile('(<div class="day">(.+?)<\/div>)*(<a href=(.+?)><li><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
     for temp1,day,temp2,rec_url,time,name in match:
-        del temp1,temp2
         if day:
-            item={'label':'=['+day+']=','path':plugin.url_for('rec_browse',url=url)}
+            item={'label':'=['+day+']=','path':plugin.url_for('rec_browse',cid='?cid='+cid)}
             items.append(item)
         time_convd=time_convert(time)
         rec_url=BASE+rec_url
-        item={'label':'['+time_convd+'] '+name,'thumbnail':vid_icon,'path':plugin.url_for('rec_play',url=rec_url)}
+        item={'label':'['+time_convd+'] '+name,'thumbnail':vid_icon,'path':plugin.url_for('rec_play',url=rec_url,name=name,cid=cid)}
         items.append(item)
     return plugin.finish(items)
     
-@plugin.route('/rec/play/<url>')
-def rec_play(url):
-    xbmc.log('path: [/rec/play/'+url+']')
+@plugin.route('/rec/play/<url>/<name>/<cid>/')
+def rec_play(url,name,cid):
+    xbmc.log('path: [/rec/play/'+url+'/'+name+'/'+cid+']')
     account_active=check_validity()
     if account_active[0] == False:
-        xbmcgui.Dialog().notification('[ You don\'t have valid subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,8000,sound=True)
+        xbmcgui.Dialog().notification('[ You don\'t have valid subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,10000,sound=True)
         raise SystemExit
+    '''
+    loading json clap conf :: getting the channel icon
+    '''
+    source_clap=weblogin.openUrl(BASE+'teko/onairclap.php',account_active[1])
+    clap_json_config=json.loads(source_clap)
+    for i in range(len(clap_json_config)):
+        if clap_json_config[i]['cid']==cid:
+            icon=clap_json_config[i]['logo']
+    '''
+    getting the video url
+    '''
     source=weblogin.openUrl(url,account_active[1])
     match=Compile('source:."(.+?)"').findall(source)
-    for rec_url in match:
-        item={'label':rec_url,'path':rec_url}
-        plugin.play_video(item)
+    match_info=Compile('<div class="content-title">(.+?)<\/div>').findall(source)
+    item={'label':match[0],'path':match[0]}
+    plugin.play_video(item)
+    xbmcgui.Dialog().notification(match_info[0],name,icon,10000,sound=False)
     return plugin.set_resolved_url()
 '''
 function that returns a tupple: title to show and stripped stream link
@@ -198,7 +222,7 @@ def check_validity(account_active=False):
             days_delta=date_expire-date_today
             xbmc.log("Account is active! You have "+str(days_delta.days)+" days until it expires")
             if days_delta.days <= 5:
-                xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]','Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,8000,sound=False)
+                xbmcgui.Dialog().notification('[ Your subscribtion will expire soon ]','Only '+str(days_delta.days)+' days left!',xbmcgui.NOTIFICATION_INFO,10000,sound=False)
     return (account_active,cookiepath)
 '''
 time convert based on TZ in conf
@@ -212,7 +236,6 @@ def time_convert(time_orig):
     elif int(timezone)<13:
         hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)-datetime.timedelta(hours=time_diff)).time()
     h,m,s=str(hol).split(':')
-    del s
     time_modified=h+':'+m
     return time_modified
 '''
@@ -225,4 +248,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    

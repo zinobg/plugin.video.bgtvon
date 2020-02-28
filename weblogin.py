@@ -68,14 +68,14 @@ def doLogin(username,password):
             cj.save(cookiepath)
             return cookiepath
         else:
-            Dialog().notification('[ Login ERROR ]', 'Login FAILED!', NOTIFICATION_ERROR, 8000, sound=True)
+            Dialog().notification('[ Login ERROR ]','Login FAILED!',NOTIFICATION_ERROR,10000,sound=True)
             raise SystemExit
 '''
 open an url using a cookie
 '''
 def openUrl(url,cookiepath):
     try:
-        cj.load(cookiepath, False, False)  
+        cj.load(cookiepath,False,False)  
     except:
         pass
     req=urllib2.Request(url)
