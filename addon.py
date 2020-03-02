@@ -85,7 +85,7 @@ def onair_stream(cid,icon):
             play_list=correct_stream_url(src_list[i])
             item={'label':play_list[0],'path':play_list[1],'is_playable':True}
             items.append(item)
-        return plugin.finish(items,update_listing=True)
+        return plugin.finish(items)
     '''
     Presuming that the first steam has the lowest quality and the last - the highest
     0 - getting the first stream link
@@ -112,7 +112,7 @@ def onair_stream(cid,icon):
     '''
     plugin.play_video(item)
     xbmcgui.Dialog().notification(text1,text2,icon,10000,sound=False)
-    return plugin.finish(None,succeeded=False)
+    return plugin.finish(None,succeeded=False,update_listing=True)
     
 @plugin.route('/prog/')
 def prog_index():
