@@ -20,7 +20,6 @@ import datetime,time
 from re import compile as Compile
 import xbmc,xbmcgui
 import json
-from xbmcaddon import Addon
 from xbmcswift2 import Plugin
 import weblogin
 
@@ -29,13 +28,12 @@ plugin = Plugin()
 '''
  Settings variables
 '''
-__settings__=Addon()
-username=__settings__.getSetting('username')
-password=__settings__.getSetting('password')
-timezone=__settings__.getSetting('index_tz')
-quality=__settings__.getSetting('quality')
-vid_icon=xbmc.translatePath(__settings__.getAddonInfo('path')+"/resources/png/vid_icon.png")
-prog_icon=xbmc.translatePath(__settings__.getAddonInfo('path')+"/resources/png/prog_icon.png")
+username=plugin.get_setting('username',str)
+password=plugin.get_setting('password',unicode)
+timezone=plugin.get_setting('index_tz',int)
+quality=plugin.get_setting('quality',str)
+vid_icon=xbmc.translatePath(plugin.addon.getAddonInfo('path')+'/resources/png/vid_icon.png')
+prog_icon=xbmc.translatePath(plugin.addon.getAddonInfo('path')+'/resources/png/prog_icon.png')
 '''
  Web links variables
 '''
@@ -87,7 +85,7 @@ def onair_stream(cid,icon):
             play_list=correct_stream_url(src_list[i])
             item={'label':play_list[0],'path':play_list[1],'is_playable':True}
             items.append(item)
-        return plugin.finish(items)
+        return plugin.finish(items,update_listing=True)
     '''
     Presuming that the first steam has the lowest quality and the last - the highest
     0 - getting the first stream link
@@ -114,7 +112,7 @@ def onair_stream(cid,icon):
     '''
     plugin.play_video(item)
     xbmcgui.Dialog().notification(text1,text2,icon,10000,sound=False)
-    return plugin.set_resolved_url()
+    return plugin.finish(None,succeeded=False)
     
 @plugin.route('/prog/')
 def prog_index():
@@ -168,35 +166,27 @@ def rec_browse(cid):
             items.append(item)
         time_convd=time_convert(time)
         rec_url=BASE+rec_url
-        item={'label':'['+time_convd+'] '+name,'thumbnail':vid_icon,'path':plugin.url_for('rec_play',url=rec_url,name=name,cid=cid)}
+        item={'label':'['+time_convd+'] '+name,'thumbnail':vid_icon,'path':plugin.url_for('rec_play',url=rec_url,name=name)}
         items.append(item)
     return plugin.finish(items)
     
-@plugin.route('/rec/play/<url>/<name>/<cid>/')
-def rec_play(url,name,cid):
-    xbmc.log('path: [/rec/play/'+url+'/'+name+'/'+cid+']')
+@plugin.route('/rec/play/<url>/<name>/')
+def rec_play(url,name):
+    items=[]
+    xbmc.log('path: [/rec/play/'+url+'/'+name+']')
     account_active=check_validity()
     if account_active[0] == False:
         xbmcgui.Dialog().notification('[ You don\'t have valid subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,10000,sound=True)
         raise SystemExit
-    '''
-    loading json clap conf :: getting the channel icon
-    '''
-    source_clap=weblogin.openUrl(BASE+'teko/onairclap.php',account_active[1])
-    clap_json_config=json.loads(source_clap)
-    for i in range(len(clap_json_config)):
-        if clap_json_config[i]['cid']==cid:
-            icon=clap_json_config[i]['logo']
     '''
     getting the video url
     '''
     source=weblogin.openUrl(url,account_active[1])
     match=Compile('source:."(.+?)"').findall(source)
     match_info=Compile('<div class="content-title">(.+?)<\/div>').findall(source)
-    item={'label':match[0],'path':match[0]}
-    plugin.play_video(item)
-    xbmcgui.Dialog().notification(match_info[0],name,icon,10000,sound=False)
-    return plugin.set_resolved_url()
+    item={'label':'PLAY: '+name,'path':match[0],'is_playable':True}
+    items.append(item)
+    return plugin.finish(items)
 '''
 function that returns a tupple: title to show and stripped stream link
 '''
@@ -230,10 +220,10 @@ time convert based on TZ in conf
 def time_convert(time_orig):
     h,m=time_orig.split(':')
     time_orig=datetime.time(int(h),int(m))
-    time_diff=abs(int(timezone)-13)
-    if int(timezone)>13:
+    time_diff=abs(timezone-13)
+    if timezone>13:
         hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)+datetime.timedelta(hours=time_diff)).time()
-    elif int(timezone)<13:
+    elif timezone<13:
         hol=(datetime.datetime.combine(datetime.date(1900,01,01),time_orig)-datetime.timedelta(hours=time_diff)).time()
     h,m,s=str(hol).split(':')
     time_modified=h+':'+m
@@ -242,7 +232,7 @@ def time_convert(time_orig):
 the main function
 '''
 def main():
-    if not username or not password or not __settings__:
+    if not username or not password:
         plugin.open_settings()
     plugin.run()
 
