@@ -18,8 +18,8 @@ Note: http://www.bgtv-on.com/ account is required.</description>
     <website>http://www.bgtv-on.com/</website>
   </extension>
   <extension point="xbmc.addon.repository" name="Add-on Repository for 3">
-    <info compressed="true">https://github.com/zinobg/plugin.video.bgtvon/blob/master/addon.xml</info>
-    <checksum>https://github.com/zinobg/plugin.video.bgtvon/blob/master/addon.xml.md5</checksum>
+    <info compressed="true">https://github.com/zinobg/plugin.video.bgtvon/raw/master/addon.xml</info>
+    <checksum>https://github.com/zinobg/plugin.video.bgtvon/raw/master/addon.xml.md5</checksum>
     <datadir zip="true">https://github.com/zinobg/plugin.video.bgtvon/archive/master.zip</datadir>
   </extension>
 </addon>
