@@ -17,9 +17,4 @@ Note: http://www.bgtv-on.com/ account is required.</description>
     <disclaimer lang="en">You have to sign up and pay to access http://www.bgtv-on.com/ TV streams.</disclaimer>
     <website>http://www.bgtv-on.com/</website>
   </extension>
-  <extension point="repository.zinobg" name="My Repository R1">
-    <info compressed="false">https://raw.githubusercontent.com/zinobg/plugin.video.bgtvon/master/addon.xml</info>
-    <checksum>https://raw.githubusercontent.com/zinobg/plugin.video.bgtvon/master/addon.xml.md5</checksum>
-    <datadir zip="true">https://raw.githubusercontent.com/zinobg/plugin.video.bgtvon/master/</datadir>
-  </extension>
 </addon>
