@@ -44,7 +44,13 @@ programme_url=BASE+'programme'
   
 @plugin.route('/')
 def menu_index():
-    menu=xbmcgui.Dialog().select('',['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
+    try: 
+        '''
+        it is supported only in newer versions of kodi
+        '''
+        menu=xbmcgui.Dialog().contextmenu(['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
+    except:
+        menu=xbmcgui.Dialog().select('',['НА ЖИВО','НА ЗАПИС','ПРОГРАМАТА'])
     if menu==0:
         plugin.redirect(plugin.url_for('onair_index'))
     if menu==1:
@@ -112,7 +118,7 @@ def onair_stream(cid,icon):
     '''
     plugin.play_video(item)
     xbmcgui.Dialog().notification(text1,text2,icon,10000,sound=False)
-    return plugin.finish(None,succeeded=False,update_listing=True)
+    return plugin.finish(None,succeeded=False)
     
 @plugin.route('/prog/')
 def prog_index():
