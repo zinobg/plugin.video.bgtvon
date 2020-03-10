@@ -48,7 +48,7 @@ def doLogin(username,password):
     cookie_file='cookies_bgtv-on.lwp'
     cookie_dir=path.join(translatePath('special://temp'))
     cookiepath=path.join(cookie_dir,cookie_file)
-    log('function: doLogin - start - cookiepath: '+str(cookiepath))
+    #log('function: doLogin - start - cookiepath: '+str(cookiepath))
     '''
     delete any old version of the cookie file
     '''
