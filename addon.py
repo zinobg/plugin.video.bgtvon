@@ -77,7 +77,7 @@ def onair_index():
         items.append(item)
     return plugin.finish(items)
             
-@plugin.route('/stream/<cid>/')    
+@plugin.route('/stream/<cid>')    
 def onair_stream(cid):
     xbmc.log('path: [/stream/'+cid+']')
     url=BASE+"teko/getchaclap_mbr.php?cid="+cid
@@ -132,7 +132,7 @@ def prog_index():
         items.append(item)
     return plugin.finish(items)
 
-@plugin.route('/prog/<cid>/')
+@plugin.route('/prog/<cid>')
 def prod_browse(cid):
     xbmc.log('path: [/prog/'+cid+']')
     items=[]
@@ -159,7 +159,7 @@ def rec_index():
         items.append(item)
     return plugin.finish(items)
 
-@plugin.route('/rec/<cid>/')
+@plugin.route('/rec/<cid>')
 def rec_browse(cid):
     xbmc.log('path: [/rec/'+cid+']')
     items=[]
@@ -177,7 +177,7 @@ def rec_browse(cid):
         items.append(item)
     return plugin.finish(items)
     
-@plugin.route('/rec/play/<url>/<name>/')
+@plugin.route('/rec/play/<url>/<name>')
 def rec_play(url,name):
     items=[]
     xbmc.log('path: [/rec/play/'+url+'/'+name+']')
