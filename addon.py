@@ -73,13 +73,13 @@ def onair_index():
     match=Compile(match_pattern).findall(source)
     for cid,ch_image,ch_current in match:
         ch_image=BASE+ch_image
-        item={'label':ch_current,'thumbnail':ch_image,'path':plugin.url_for('onair_stream',cid=cid,icon=ch_image)}
+        item={'label':ch_current,'thumbnail':ch_image,'path':plugin.url_for('onair_stream',cid=cid)}
         items.append(item)
     return plugin.finish(items)
             
-@plugin.route('/stream/<cid>/<icon>/')    
-def onair_stream(cid,icon):
-    xbmc.log('path: [/stream/'+cid+''+icon+']')
+@plugin.route('/stream/<cid>/')    
+def onair_stream(cid):
+    xbmc.log('path: [/stream/'+cid+']')
     url=BASE+"teko/getchaclap_mbr.php?cid="+cid
     cookiepath=weblogin.doLogin(username,password)
     source=weblogin.openUrl(url,cookiepath)
@@ -113,6 +113,7 @@ def onair_stream(cid,icon):
         if clap_json_config[i]['cid']==cid:
             text1=clap_json_config[i]['chName']
             text2=clap_json_config[i]['name']
+            icon=clap_json_config[i]['logo']
     '''
     playing the stream
     '''
