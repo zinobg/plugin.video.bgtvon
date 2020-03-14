@@ -60,7 +60,6 @@ def menu_index():
 
 @plugin.route('/stream/')
 def onair_index():
-    items=[]
     xbmc.log('path: [/stream/]')    
     account_active=check_validity()
     source=weblogin.openUrl(BASE,account_active[1])
@@ -71,10 +70,7 @@ def onair_index():
         xbmc.log("You don't have a valid account, so you are going to watch the free TVs only.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
     match=Compile(match_pattern).findall(source)
-    for cid,ch_image,ch_current in match:
-        ch_image=BASE+ch_image
-        item={'label':ch_current,'thumbnail':ch_image,'path':plugin.url_for('onair_stream',cid=cid)}
-        items.append(item)
+    items=[{'label':ch_current,'thumbnail':BASE+ch_image,'path':plugin.url_for('onair_stream',cid=cid)} for cid,ch_image,ch_current in match]
     return plugin.finish(items)
             
 @plugin.route('/stream/<cid>')    
