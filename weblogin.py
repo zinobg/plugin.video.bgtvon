@@ -30,16 +30,6 @@ cj=LWPCookieJar()
 opener=urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
 urllib2.install_opener(opener)
 '''
-check if login is successful
-'''
-def checkLogin(source_login,username):
-    logged_in_string1='logout'
-    logged_in_string2='m3u8'
-    if search(logged_in_string1,source_login,IGNORECASE) or search(logged_in_string2,source_login,IGNORECASE):
-        return True
-    else:
-        return False
-'''
 login to page
 '''
 def doLogin(username,password):
@@ -48,7 +38,6 @@ def doLogin(username,password):
     cookie_file='cookies_bgtv-on.lwp'
     cookie_dir=path.join(translatePath('special://temp'))
     cookiepath=path.join(cookie_dir,cookie_file)
-    #log('function: doLogin - start - cookiepath: '+str(cookiepath))
     '''
     delete any old version of the cookie file
     '''
@@ -63,7 +52,6 @@ def doLogin(username,password):
         response=opener.open(req)
         source_login=response.read()
         response.close()
-        islogged=checkLogin(source_login,username)
         if search(logged_in_string1,source_login,IGNORECASE):
             cj.save(cookiepath)
             return cookiepath
