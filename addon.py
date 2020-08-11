@@ -21,6 +21,12 @@ import urllib,datetime,json
 import xbmc,xbmcgui,xbmcplugin,xbmcaddon
 import weblogin
 
+
+'''
+fill in the credentials
+'''
+if not xbmcaddon.Addon().getSetting('username') or not xbmcaddon.Addon().getSetting('password') or not xbmcaddon.Addon():
+    xbmcaddon.Addon().openSettings()
 '''
 icons
 '''
@@ -41,10 +47,6 @@ BASE="http://www.bgtv-on.com/"
 subscribe_url=BASE+'subscribe'
 recording_url=BASE+'recording'
 programme_url=BASE+'programme'
-'''
-'''
-if not username or not password or not xbmcaddon.Addon():
-    xbmcaddon.Addon().openSettings()
 '''
 time convert based on TZ in conf
 '''
@@ -92,9 +94,9 @@ Live TV functions
 def LIST_CHANNELS():
     account_active=check_validity()
     source=weblogin.openUrl(BASE,account_active[1])
-    if account_active[0]==True:
+    if account_active[0]:
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
-    elif account_active[0]==False:
+    else:
         xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,10000,sound=True)
         xbmc.log("You don't have a valid account, so you are going to watch the free TVs only.")
         match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
@@ -105,6 +107,8 @@ def LIST_CHANNELS():
         '''
         if cid=='47' and hide_babytv=='true':
             continue
+        '''
+        '''
         ch_image = (BASE + ch_image)
         addDir(ch_current,cid,21,ch_image)
 '''
