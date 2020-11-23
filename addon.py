@@ -87,7 +87,7 @@ def correct_stream_url(raw_stream):
     titles=Compile('liveedge\/(.+?).stream').findall(stream)
     for title in titles:
         title="["+title.replace('_','] [').upper()+"]"
-    return (title,stream)
+        return (title,stream)
 '''
 Live TV functions
 '''
