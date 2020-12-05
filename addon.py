@@ -85,14 +85,9 @@ function that returns a tupple: title to show and stripped stream link
 '''
 def correct_stream_url(raw_stream):
     stream=raw_stream.lstrip('[').rstrip(']').strip('"')
-    if "liveedge" in stream:
-        titles=Compile('liveedge\/(.+?).stream').findall(stream)
-    if "liveorigin" in stream:
-        titles=Compile('liveorigin\/(.+?).stream').findall(stream)
+    titles=Compile('\/(.+?).stream').findall(stream)
     for title in titles:
         title="["+title.replace('_','] [').upper()+"]"
-        if not title:
-            title="Channel Name"
         return (title,stream)
 '''
 Live TV functions
