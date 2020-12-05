@@ -20,6 +20,7 @@ from re import compile as Compile
 import urllib,datetime,json
 import xbmc,xbmcgui,xbmcplugin,xbmcaddon
 import weblogin
+#import threading
 
 
 '''
@@ -84,9 +85,14 @@ function that returns a tupple: title to show and stripped stream link
 '''
 def correct_stream_url(raw_stream):
     stream=raw_stream.lstrip('[').rstrip(']').strip('"')
-    titles=Compile('liveedge\/(.+?).stream').findall(stream)
+    if "liveedge" in stream:
+        titles=Compile('liveedge\/(.+?).stream').findall(stream)
+    if "liveorigin" in stream:
+        titles=Compile('liveorigin\/(.+?).stream').findall(stream)
     for title in titles:
         title="["+title.replace('_','] [').upper()+"]"
+        if not title:
+            title="Channel Name"
         return (title,stream)
 '''
 Live TV functions
@@ -134,6 +140,7 @@ def INDEX_CHANNELS(cid):
             element=-1
         xbmc.log('2-quality: '+quality+' and nuber of streams: '+str(len(src_list)))
         play_list=correct_stream_url(src_list[element])
+        #xbmc.log(play_list)
         '''
         loading json clap conf
         '''
@@ -173,7 +180,7 @@ def LIST_REC_CHAN(url):
             addLink('=['+day+']=','','')
         time_convd=time_convert(time)
         desc_txt=('['+time_convd+'] '+name)
-        addDir(desc_txt,rec_url,32,vid_icon)
+        addDir(desc_txt,rec_url.strip('"'),32,vid_icon)
 '''
 '''
 def PLAY_REC_CHAN(cid,name):
@@ -288,17 +295,31 @@ if mode==None or cid==None or len(cid)<1:
 
 elif mode==21:
     INDEX_CHANNELS(cid)
-
 elif mode==31:
     LIST_REC_CHAN(cid)
-
 elif mode==32:
     PLAY_REC_CHAN(cid,name)
-
 elif mode==41:
     LIST_PROG_CH(cid,name)
-
 elif mode==42:
     INDEX_CHANNELS(cid)
 
 xbmcplugin.endOfDirectory(int(sys.argv[1]),succeeded=True)
+#xbmc.executebuiltin('Container.Refresh')
+#guiUpdateTimer = threading.Timer(5.0,xbmc.executebuiltin('Container.Refresh'))
+#guiUpdateTimer.start()
+'''
+def populateList(self):
+    for oneContent in myContents:
+        li = xbmcgui.ListItem(oneContent["name"])
+        li.setProperty("IsPlayable", "true")
+        xbmcplugin.addDirectoryItem(handle=addon_handle, url=oneContent["url"], listitem=li)
+    xbmcplugin.endOfDirectory(addon_handle)
+    guiUpdateTimer = threading.Timer(
+        4.0, # fire after  4 seconds
+        self.refreshGuiItems)
+    guiUpdateTimer.start()
+
+def refreshGuiItems(self):
+    xbmc.executebuiltin('Container.Refresh')
+'''
