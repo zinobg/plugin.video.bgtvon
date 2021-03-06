@@ -158,7 +158,8 @@ def INDEX_CHANNELS(cid):
 '''
 '''
 def LIST_REC():
-    source=weblogin.openUrl(recording_url,'')
+    cookiepath = weblogin.doLogin(username,password)
+    source=weblogin.openUrl(recording_url,cookiepath)
     match=Compile('<a href=recording(.+?)#..class=tab.>(.+?)<\/a>').findall(source)
     for cid,name in match:
         rec_url=(recording_url+cid)
@@ -167,7 +168,8 @@ def LIST_REC():
 Recorded channels
 '''
 def LIST_REC_CHAN(url):
-    source=weblogin.openUrl(url,'')
+    cookiepath = weblogin.doLogin(username, password)
+    source=weblogin.openUrl(url,cookiepath)
     match=Compile('(<div class="day">(.+?)<\/div>)*(<a href=(.+?)><li><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
     for temp1,day,temp2,rec_url,time,name in match:
         del temp1,temp2
@@ -181,8 +183,8 @@ def LIST_REC_CHAN(url):
 def PLAY_REC_CHAN(cid,name):
     url=(BASE+cid)
     account_active=check_validity()
-    if account_active[0]==False:
-        xbmcgui.Dialog().notification('[ You don\'t have valid subscription ]', 'Not Available without subscribtion!',xbmcgui.NOTIFICATION_WARNING,10000,sound=True)
+    if not account_active[0]:
+        xbmcgui.Dialog().notification('[ You don\'t have valid subscription ]', 'Not Available without subscription!',xbmcgui.NOTIFICATION_WARNING,10000,sound=True)
         raise SystemExit
     source_rec=weblogin.openUrl(url,account_active[1])
     match_rec=Compile('source:."(.+?)"').findall(source_rec)
@@ -192,15 +194,17 @@ def PLAY_REC_CHAN(cid,name):
 TV schedule
 '''
 def INDEX_PROG_CH():
-    source=weblogin.openUrl(programme_url,'')
+    cookiepath = weblogin.doLogin(username, password)
+    source=weblogin.openUrl(programme_url,cookiepath)
     match=Compile('<a href=programme\?cid=(.+?)#..class=tab >(.+?)<\/a>').findall(source)
     for cid,name in match:
         addDir(name,cid,41,prog_icon)    
 '''
 '''
-def LIST_PROG_CH(cid,name):
+def LIST_PROG_CH(cid):
     url=programme_url+'?cid='+cid
-    source=weblogin.openUrl(url,'')
+    cookiepath = weblogin.doLogin(username, password)
+    source=weblogin.openUrl(url,cookiepath)
     match=Compile('(<div class="day">(.+?)<\/div>)*(<li style="list-style: none;"><span class="time">(.+?)<\/span><span class="title">(.+?)<\/span>)').findall(source)
     for temp1,day,temp2,time,name in match:
         del temp1,temp2
@@ -233,7 +237,6 @@ def get_params():
 defining xbmcplugin lists
 '''
 def addLink(name,url,iconimage):
-    ok=True
     liz=xbmcgui.ListItem(name,iconImage="DefaultVideo.png",thumbnailImage=iconimage)
     liz.setInfo(type="Video",infoLabels={ "Title": name })
     liz.setProperty('IsPlayable','true')
@@ -241,7 +244,6 @@ def addLink(name,url,iconimage):
     return ok
 def addDir(name,cid,mode,iconimage):
     u=sys.argv[0]+"?cid="+urllib.quote_plus(cid)+"&mode="+str(mode)+"&name="+urllib.quote_plus(name)
-    ok=True
     liz=xbmcgui.ListItem(name,iconImage="DefaultFolder.png",thumbnailImage=iconimage)
     liz.setInfo(type="Video", infoLabels={ "Title": name })
     ok=xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]),url=u,listitem=liz,isFolder=True)
@@ -295,14 +297,16 @@ elif mode==31:
 elif mode==32:
     PLAY_REC_CHAN(cid,name)
 elif mode==41:
-    LIST_PROG_CH(cid,name)
+    LIST_PROG_CH(cid)
 elif mode==42:
     INDEX_CHANNELS(cid)
 
-xbmcplugin.endOfDirectory(int(sys.argv[1]),succeeded=True)
+
 #xbmc.executebuiltin('Container.Refresh')
-#guiUpdateTimer = threading.Timer(5.0,xbmc.executebuiltin('Container.Refresh'))
+#xbmc.log(sys.argv[0]+"?mode="+str(21))
+#guiUpdateTimer = threading.Timer(5.0,xbmc.executebuiltin('Container.Refresh(sys.argv[0]+"?mode="+str(21))'))
 #guiUpdateTimer.start()
+xbmcplugin.endOfDirectory(int(sys.argv[1]),succeeded=True)
 '''
 def populateList(self):
     for oneContent in myContents:
