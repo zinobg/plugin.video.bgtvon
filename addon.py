@@ -86,6 +86,8 @@ function that returns a tupple: title to show and stripped stream link
 def correct_stream_url(raw_stream):
     stream=raw_stream.lstrip('[').rstrip(']').strip('"')
     titles=Compile('\/(.+?).stream').findall(stream)
+    if not titles:
+        titles = compile('\/(.+?).smil').findall(stream)
     for title in titles:
         title="["+title.replace('_','] [').upper()+"]"
         return (title,stream)
