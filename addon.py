@@ -95,36 +95,31 @@ def correct_stream_url(raw_stream):
 Live TV functions
 '''
 def LIST_CHANNELS():
-    account_active=check_validity()
-    source=weblogin.openUrl(BASE,account_active[1])
-    if account_active[0]:
-        match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n*\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
-    else:
-        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available',xbmcgui.NOTIFICATION_WARNING,10000,sound=True)
-        xbmc.log("You don't have a valid account, so you are going to watch the free TVs only.")
-        match_pattern='<a href="watch\?cid=(.+?)".*.\n.*.\n.*.<img src="(.+?)".*.\n.*.\n.*.\n.*.\n.*.\n.*.\n.*.<div class="thumb-text">(.+?)<\/div>'
-    match=Compile(match_pattern).findall(source)
-    for cid,ch_image,ch_current in match:
-        '''
-        Here I hide babytv 
-        '''
-        if cid=='47' and hide_babytv=='true':
+    account_active = check_validity()
+    source = weblogin.openUrl(BASE+'teko/onairclap.php', account_active[1])
+    json_load = json.loads(source)
+    for i in range(len(json_load)):
+        c_name = ' '.join(json_load[i]['name'].split()).encode('utf-8')
+        c_cid = json_load[i]['cid']
+        if c_cid == '47' and hide_babytv == 'true':
             continue
-        '''
-        '''
-        ch_image = (BASE + ch_image)
-        addDir(ch_current,cid,21,ch_image)
+        c_logo = json_load[i]['logo']
+        name = ('[' + str(int(json_load[i]['percent'])) + '%] ' + c_name)
+        addDir(name, c_cid, 21, c_logo)
+    if not account_active[0]:
+        xbmcgui.Dialog().notification('[ You don\'t have a valide subscription ]', 'Only free TVs are available', xbmcgui.NOTIFICATION_WARNING, 10000, sound=True)
+        xbmc.log("You don't have a valid account, so you are going to watch the free TVs only.")
 '''
 '''
 def INDEX_CHANNELS(cid):
-    url=(BASE+"teko/getchaclap_mbr.php?cid="+cid)
-    cookiepath=weblogin.doLogin(username,password)
-    source=weblogin.openUrl(url,cookiepath)
-    src_list=list(source.split(","))
-    if quality=='moderate':
+    url = (BASE+"teko/getchaclap_mbr.php?cid="+cid)
+    cookiepath = weblogin.doLogin(username, password)
+    source = weblogin.openUrl(url, cookiepath)
+    src_list = list(source.split(","))
+    if quality == 'moderate':
         for i in range(len(src_list)):
-            play_list=correct_stream_url(src_list[i])
-            addLink('PLAY: '+play_list[0],play_list[1],vid_icon)
+            play_list = correct_stream_url(src_list[i])
+            addLink('PLAY: '+play_list[0], play_list[1], vid_icon)
     else:
         '''
         Presuming that the first stream has the lowest quality and the last - the highest
@@ -141,22 +136,22 @@ def INDEX_CHANNELS(cid):
         '''
         loading json clap conf
         '''
-        source_clap=weblogin.openUrl(BASE+'teko/onairclap.php',cookiepath)
+        source_clap=weblogin.openUrl(BASE+'teko/onairclap.php', cookiepath)
         clap_json_config=json.loads(source_clap)
         for i in range(len(clap_json_config)):
-            if clap_json_config[i]['cid']==cid:
-                text1=clap_json_config[i]['chName']
-                text2=clap_json_config[i]['name']
-                icon=clap_json_config[i]['logo']
+            if clap_json_config[i]['cid'] == cid:
+                ch_name = clap_json_config[i]['chName']
+                c_name = ' '.join(clap_json_config[i]['name'].split()).encode('utf-8')
+                icon = clap_json_config[i]['logo']
         '''
         playing the stream
         '''
         liz=xbmcgui.ListItem(play_list[0])
-        liz.setInfo(type="Video",infoLabels={"Title":play_list[0]})
-        liz.setProperty('IsPlayable','true')
-        xbmc.Player().play(item=play_list[1],listitem=liz,windowed=False,startpos=-1)
-        xbmcgui.Dialog().notification(text1,text2,icon,10000,sound=False)
-        return xbmcplugin.endOfDirectory(int(sys.argv[1]),succeeded=False)
+        liz.setInfo(type="Video", infoLabels={"Title":play_list[0]})
+        liz.setProperty('IsPlayable', 'true')
+        xbmc.Player().play(item=play_list[1], listitem=liz, windowed=False, startpos=-1)
+        xbmcgui.Dialog().notification(ch_name, c_name, icon, 10000, sound=False)
+        return xbmcplugin.endOfDirectory(int(sys.argv[1]), succeeded=False)
 '''
 '''
 def LIST_REC():
@@ -309,18 +304,4 @@ elif mode==42:
 #guiUpdateTimer = threading.Timer(5.0,xbmc.executebuiltin('Container.Refresh(sys.argv[0]+"?mode="+str(21))'))
 #guiUpdateTimer.start()
 xbmcplugin.endOfDirectory(int(sys.argv[1]),succeeded=True)
-'''
-def populateList(self):
-    for oneContent in myContents:
-        li = xbmcgui.ListItem(oneContent["name"])
-        li.setProperty("IsPlayable", "true")
-        xbmcplugin.addDirectoryItem(handle=addon_handle, url=oneContent["url"], listitem=li)
-    xbmcplugin.endOfDirectory(addon_handle)
-    guiUpdateTimer = threading.Timer(
-        4.0, # fire after  4 seconds
-        self.refreshGuiItems)
-    guiUpdateTimer.start()
 
-def refreshGuiItems(self):
-    xbmc.executebuiltin('Container.Refresh')
-'''
