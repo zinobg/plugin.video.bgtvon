@@ -16,59 +16,56 @@
 #    along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
 
-import urllib2
-from os import path,remove
-from re import search,IGNORECASE
-from xbmc import translatePath,log
-from xbmcgui import Dialog,NOTIFICATION_ERROR
-from cookielib import LWPCookieJar
+import urllib
+from os import path, remove
+from re import search, IGNORECASE
+from xbmcvfs import translatePath
+from xbmcgui import Dialog, NOTIFICATION_ERROR
+from http.cookiejar import LWPCookieJar
+# from xbmc import log
 
-'''
-setting up cookie jar
-'''
-cj=LWPCookieJar()
-opener=urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-urllib2.install_opener(opener)
-'''
-login to page
-'''
-def doLogin(username,password):
-    logged_in_string1='logout'
-    login_url='http://bgtv-on.com/login'
-    cookie_file='cookies_bgtv-on.lwp'
-    cookie_dir=path.join(translatePath('special://temp'))
-    cookiepath=path.join(cookie_dir,cookie_file)
-    '''
-    delete any old version of the cookie file
-    '''
+# setting up cookie jar
+cj = LWPCookieJar()
+opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj))
+urllib.request.install_opener(opener)
+
+
+# login to page
+def doLogin(username, password, login_url, cookie_file):
+    logged_in_string1 = 'logout'
+    cookie_dir = path.join(translatePath('special://temp'))
+    cookiepath = path.join(cookie_dir, cookie_file)
+    # delete any old version of the cookie file
     try:
         remove(cookiepath)
     except:
         pass
     if username and password:
-        req=urllib2.Request(login_url)
-        req.add_data('user='+username+'&pass='+password+'&remember=on')
-        req.add_header('User-Agent','Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/64.0.3282.186 Safari/537.36')
-        response=opener.open(req)
-        source_login=response.read()
+        payload = {'user': username, 'pass': password, 'remember': 'on'}
+        data = urllib.parse.urlencode(payload)
+        binary_data = data.encode('utf-8')
+        req = urllib.request.Request(login_url, binary_data)
+        req.add_header('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:92.0) Gecko/20100101 Firefox/92.0')
+        response = opener.open(req)
+        source_login = response.read().decode('utf-8')
         response.close()
-        if search(logged_in_string1,source_login,IGNORECASE):
+        if search(logged_in_string1, source_login, IGNORECASE):
             cj.save(cookiepath)
             return cookiepath
         else:
-            Dialog().notification('[ Login ERROR ]','Login FAILED!',NOTIFICATION_ERROR,10000,sound=True)
+            Dialog().notification('[ Login ERROR ]', 'Login FAILED!', NOTIFICATION_ERROR, 10000, sound=True)
             raise SystemExit
-'''
-open an url using a cookie
-'''
-def openUrl(url,cookiepath):
+
+
+# open an url using a cookie
+def openUrl(url, cookiepath):
     try:
-        cj.load(cookiepath,False,False)  
+        cj.load(cookiepath, False, False)
     except:
         pass
-    req=urllib2.Request(url)
-    response=opener.open(req)
-    source=response.read()
+    req = urllib.request.Request(url)
+    response = opener.open(req)
+    source = response.read().decode('utf-8')
     response.close()
     try:
         cj.save(cookiepath)
